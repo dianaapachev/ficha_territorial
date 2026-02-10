@@ -232,19 +232,26 @@ with tab1:
         else:
             st.info("Sin datos suficientes para ODS.")
 
-    st.subheader("Programas internos APC")
-    p1, p2 = st.columns(2)
+st.subheader("Programas internos APC")
+p1, p2 = st.columns(2)
 
-    with p1:
-        st.markdown("**ColCol**")
-        st.metric("Registros encontrados", len(colcol_dept))
-        st.dataframe(colcol_dept.head(50), use_container_width=True)
+with p1:
+    st.markdown("**ColCol**")
+    st.metric("Registros encontrados", len(colcol_dept))
 
-    with p2:
-        st.markdown("**Contrapartidas**")
-        st.metric("Registros encontrados", len(contr_dept))
-        st.dataframe(contr_dept.head(50), use_container_width=True)
+    colcol_view = colcol_dept.copy()
+    if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
+        colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+            pd.to_numeric(colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
+            .apply(format_cop)
+        )
 
+    st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
+
+with p2:
+    st.markdown("**Contrapartidas**")
+    st.metric("Registros encontrados", len(contr_dept))
+    st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
 
 # -------------------------
 # TAB 2
