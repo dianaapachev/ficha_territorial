@@ -23,6 +23,14 @@ def norm_text(x):
 
 
 def format_usd(n):
+    def format_cop(n):
+    """Formatea números como COP con separador en puntos y sin decimales."""
+    try:
+        n = float(n)
+    except Exception:
+        return ""
+    return "$ " + f"{n:,.0f}".replace(",", ".")
+
     """Formatea números como USD con separador en puntos y sin decimales."""
     try:
         n = float(n)
@@ -263,3 +271,4 @@ with tab2:
         file_name=f"proyectos_aod_{dept}.csv",
         mime="text/csv"
     )
+
