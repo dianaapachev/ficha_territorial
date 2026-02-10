@@ -23,11 +23,15 @@ def norm_text(x):
 
 
 def format_usd(n):
- HEAD
-    def format_cop(n):
+    """Formatea números como USD con separador en puntos y sin decimales."""
+    try:
+        n = float(n)
+    except Exception:
+        return ""
+    return "USD " + f"{n:,.0f}".replace(",", ".")
+
 
 def format_cop(n):
-ef7f74f (Add COP formatting helper (format_cop))
     """Formatea números como COP con separador en puntos y sin decimales."""
     try:
         n = float(n)
@@ -35,12 +39,6 @@ ef7f74f (Add COP formatting helper (format_cop))
         return ""
     return "$ " + f"{n:,.0f}".replace(",", ".")
 
-    """Formatea números como USD con separador en puntos y sin decimales."""
-    try:
-        n = float(n)
-    except Exception:
-        return ""
-    return "USD " + f"{n:,.0f}".replace(",", ".")
 
 
 @st.cache_data
