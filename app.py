@@ -290,7 +290,7 @@ with tab1:
 with tab2:
 
     st.subheader(f"Listado de proyectos activos — {dept}")
-    st.caption("Fuente: Cíclope")
+    st.caption("Fuente: Cíclope - Última actualización 31 de diciembre de 2025")
 
     search = st.text_input("Buscar").strip()
     df = proj_dept.copy()
@@ -312,7 +312,15 @@ with tab2:
                 mask = mask | df[c].astype(str).str.contains(search, case=False, na=False)
             df = df[mask]
 
-    st.dataframe(df, use_container_width=True)
+    # Quitar columna técnica
+df = df.drop(columns=["DEPT_NORM"], errors="ignore")
+
+st.dataframe(
+    df,
+    use_container_width=True,
+    hide_index=True
+)
+
 
     st.download_button(
         "Descargar CSV filtrado",
