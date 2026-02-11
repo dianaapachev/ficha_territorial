@@ -293,7 +293,7 @@ with tab1:
 with tab2:
 
     st.subheader(f"Listado de proyectos activos — {dept}")
-    st.caption("Fuente: Cíclope")
+    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar").strip()
     df = proj_dept.copy()
