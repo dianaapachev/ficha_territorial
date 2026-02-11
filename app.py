@@ -124,11 +124,34 @@ cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
 
 # Programas internos
-colcol_dept = colcol[
-    (colcol.get("DEPARTAMENTO EN EL QUE SE DESARROLLÓ", "").astype(str) == dept)
-    | (colcol.get("DEPARTAMENTOS PARTICIPANTES", "").astype(str).str.contains(dept, na=False))
-    | (colcol.get("DEPARTAMENTOS MAY", "").astype(str).str.contains(dept, na=False))
-]
+mask = pd.Series(False, index=colcol.index)
+
+if "DEPARTAMENTO EN EL QUE SE DESARROLLÓ" in colcol.columns:
+    mask = mask | (
+        colcol["DEPARTAMENTO EN EL QUE SE DESARROLLÓ"]
+        .astype("string")
+        .map(norm_text)
+        == dept_norm
+    )
+
+if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
+    mask = mask | (
+        colcol["DEPARTAMENTOS PARTICIPANTES"]
+        .astype("string")
+        .map(norm_text)
+        .str.contains(dept_norm, na=False)
+    )
+
+if "DEPARTAMENTOS MAY" in colcol.columns:
+    mask = mask | (
+        colcol["DEPARTAMENTOS MAY"]
+        .astype("string")
+        .map(norm_text)
+        .str.contains(dept_norm, na=False)
+    )
+
+colcol_dept = colcol[mask]
+
 
 contr_dept = (
     contrapartidas[contrapartidas["Departamento"] == dept]
