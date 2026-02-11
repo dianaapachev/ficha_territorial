@@ -13,17 +13,13 @@ def norm_text(x):
     if x is None:
         return ""
     s = str(x).strip().upper()
-    # quita tildes
     s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
-    # quita puntuación (comas, puntos, etc.) y deja solo letras/números/espacios
     s = re.sub(r"[^A-Z0-9\s]", " ", s)
-    # colapsa espacios múltiples
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
 
 def format_usd(n):
-    """Formatea números como USD con separador en puntos y sin decimales."""
     try:
         n = float(n)
     except Exception:
@@ -32,13 +28,11 @@ def format_usd(n):
 
 
 def format_cop(n):
-    """Formatea números como COP con separador en puntos y sin decimales."""
     try:
         n = float(n)
     except Exception:
         return ""
     return "$ " + f"{n:,.0f}".replace(",", ".")
-
 
 
 @st.cache_data
@@ -51,8 +45,10 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 
             data = []
             for row in ws.iter_rows(
-                min_row=min_row, max_row=max_row,
-                min_col=min_col, max_col=max_col,
+                min_row=min_row,
+                max_row=max_row,
+                min_col=min_col,
+                max_col=max_col,
                 values_only=True
             ):
                 data.append(list(row))
@@ -73,13 +69,11 @@ def load_data():
     contrapartidas = read_named_table(FILE, "contrapartidas")
     proyectos = read_named_table(FILE, "proyectos")
 
-    # Normaliza strings
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
         for c in df.columns:
             if df[c].dtype == "object":
                 df[c] = df[c].astype(str).str.strip()
 
-    # USD numérico
     if "VALOR APORTE (USD)" in ciclope.columns:
         ciclope["VALOR APORTE (USD)"] = pd.to_numeric(
             ciclope["VALOR APORTE (USD)"], errors="coerce"
@@ -93,14 +87,16 @@ def top_by_sum(df, group_col, value_col, n=5):
         return pd.DataFrame(columns=[group_col, value_col])
     return (
         df.groupby(group_col, dropna=False)[value_col]
-          .sum()
-          .sort_values(ascending=False)
-          .head(n)
-          .reset_index()
+        .sum()
+        .sort_values(ascending=False)
+        .head(n)
+        .reset_index()
     )
 
 
-# --- APP ---
+# -------------------------
+# APP
+# -------------------------
 st.set_page_config(page_title="Ficha Territorial", layout="wide")
 st.title("Ficha Territorial")
 
@@ -113,22 +109,23 @@ dept = st.selectbox("Selecciona un departamento", depts)
 dept_norm = norm_text(dept)
 infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
 
-# Info general por depto (con normalización)
 info = infogeneral[infogeneral["DEPT_NORM"] == dept_norm].head(1)
 
-# Normalización depto en ciclope y proyectos
 ciclope["DEPT_NORM"] = ciclope["DEPARTAMENTO"].map(norm_text)
 proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 
 cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
 
-# Programas internos
-# ColCol: filtrar SOLO por "DEPARTAMENTOS PARTICIPANTES"
-mask = pd.Series(False, index=colcol.index)
+# -------------------------
+# Programas internos – filtros
+# -------------------------
+
+# ColCol: SOLO por DEPARTAMENTOS PARTICIPANTES
+mask_colcol = pd.Series(False, index=colcol.index)
 
 if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
-    mask = (
+    mask_colcol = (
         colcol["DEPARTAMENTOS PARTICIPANTES"]
         .astype("string")
         .map(norm_text)
@@ -137,13 +134,16 @@ if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
 else:
     st.warning("No encontré la columna 'DEPARTAMENTOS PARTICIPANTES' en ColCol.")
 
-colcol_dept = colcol[mask]
+colcol_dept = colcol[mask_colcol]
 
-contr_dept = (
-    contrapartidas[contrapartidas["Departamento"] == dept]
-    if "Departamento" in contrapartidas.columns
-    else contrapartidas.iloc[0:0]
-)
+# Contrapartidas
+if "Departamento" in contrapartidas.columns:
+    contr_dept = contrapartidas[
+        contrapartidas["Departamento"].astype("string").map(norm_text) == dept_norm
+    ]
+else:
+    contr_dept = contrapartidas.iloc[0:0]
+
 
 tab1, tab2 = st.tabs(["Ficha territorial", "Proyectos AOD"])
 
@@ -152,6 +152,7 @@ tab1, tab2 = st.tabs(["Ficha territorial", "Proyectos AOD"])
 # TAB 1
 # -------------------------
 with tab1:
+
     st.subheader("Información general")
 
     if info.empty:
@@ -160,7 +161,8 @@ with tab1:
         c1, c2, c3 = st.columns(3)
 
         c1.metric("Capital", info.iloc[0].get("Capital", ""))
-        c2.metric("# Municipios", info.iloc[0].get("Número de Municipios", info.iloc[0].get("Municipios", "")))
+        c2.metric("# Municipios", info.iloc[0].get("Número de Municipios",
+                                                   info.iloc[0].get("Municipios", "")))
 
         pob = info.iloc[0].get("Población", None)
         if pd.notna(pob):
@@ -173,7 +175,6 @@ with tab1:
             df_det = info.T.reset_index()
             df_det.columns = ["Campo", "Valor"]
 
-            # eliminar filas técnicas
             df_det = df_det[
                 ~df_det["Campo"].astype(str).str.lower().str.strip().isin(
                     ["porcentaje de avance", "dept_norm"]
@@ -186,13 +187,20 @@ with tab1:
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Intervenciones (únicas)",
-              cic_dept["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept.columns else 0)
-    m2.metric("Cooperantes",
-              cic_dept["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_dept.columns else 0)
-    m3.metric("Municipios intervenidos",
-              cic_dept["MUNICIPIO"].nunique() if "MUNICIPIO" in cic_dept.columns else 0)
+              cic_dept["CODIGO INTERVENCION"].nunique()
+              if "CODIGO INTERVENCION" in cic_dept.columns else 0)
 
-    total_usd = cic_dept["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept.columns else 0
+    m2.metric("Cooperantes",
+              cic_dept["NOMBRE ACTOR"].nunique()
+              if "NOMBRE ACTOR" in cic_dept.columns else 0)
+
+    m3.metric("Municipios intervenidos",
+              cic_dept["MUNICIPIO"].nunique()
+              if "MUNICIPIO" in cic_dept.columns else 0)
+
+    total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
+        if "VALOR APORTE (USD)" in cic_dept.columns else 0
+
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
 
     c5, c6 = st.columns(2)
@@ -208,7 +216,8 @@ with tab1:
                 .encode(
                     y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
-                    tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                    tooltip=["NOMBRE ACTOR:N",
+                             alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
             )
             st.altair_chart(chart_act, use_container_width=True)
@@ -230,7 +239,8 @@ with tab1:
                 .encode(
                     y=alt.Y("ODS:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
-                    tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                    tooltip=["ODS:N",
+                             alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
             )
             st.altair_chart(chart_ods, use_container_width=True)
@@ -241,31 +251,44 @@ with tab1:
         else:
             st.info("Sin datos suficientes para ODS.")
 
-st.subheader("Programas internos APC")
-p1, p2 = st.columns(2)
+    # -------------------------
+    # Programas internos APC
+    # -------------------------
 
-with p1:
-    st.markdown("**ColCol**")
-    st.metric("Registros encontrados", len(colcol_dept))
+    st.subheader("Programas internos APC")
+    p1, p2 = st.columns(2)
 
-    colcol_view = colcol_dept.copy()
-    if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
-        colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
-            pd.to_numeric(colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
-            .apply(format_cop)
-        )
+    with p1:
+        st.markdown("**ColCol**")
+        st.metric("Registros encontrados", len(colcol_dept))
 
-    st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
+        colcol_view = colcol_dept.copy()
 
-with p2:
-    st.markdown("**Contrapartidas**")
-    st.metric("Registros encontrados", len(contr_dept))
-    st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
+        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
+            colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+                pd.to_numeric(
+                    colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"],
+                    errors="coerce"
+                ).apply(format_cop)
+            )
+
+        st.dataframe(colcol_view.head(50),
+                      use_container_width=True,
+                      hide_index=True)
+
+    with p2:
+        st.markdown("**Contrapartidas**")
+        st.metric("Registros encontrados", len(contr_dept))
+        st.dataframe(contr_dept.head(50),
+                      use_container_width=True,
+                      hide_index=True)
+
 
 # -------------------------
 # TAB 2
 # -------------------------
 with tab2:
+
     st.subheader(f"Listado de proyectos activos — {dept}")
     st.caption("Fuente: Cíclope")
 
@@ -273,8 +296,16 @@ with tab2:
     df = proj_dept.copy()
 
     if search and not df.empty:
-        candidate_cols = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "NOMBRE ACTOR", "MUNICIPIO", "ODS", "META ODS"]
+        candidate_cols = [
+            "NOMBRE INTERVENCION",
+            "OBJETIVO GENERAL",
+            "NOMBRE ACTOR",
+            "MUNICIPIO",
+            "ODS",
+            "META ODS"
+        ]
         cols = [c for c in candidate_cols if c in df.columns]
+
         if cols:
             mask = False
             for c in cols:
@@ -289,4 +320,3 @@ with tab2:
         file_name=f"proyectos_aod_{dept}.csv",
         mime="text/csv"
     )
-
