@@ -266,10 +266,10 @@ with p2:
 # TAB 2
 # -------------------------
 with tab2:
-    st.subheader(f"Listado AOD (tabla proyectos) — {dept}")
-    st.caption("Fuente: tabla 'proyectos' (pestaña datosproyectos).")
+    st.subheader(f"Listado de proyectos activos — {dept}")
+    st.caption("Fuente: Cíclope")
 
-    search = st.text_input("Buscar (opcional)").strip()
+    search = st.text_input("Buscar").strip()
     df = proj_dept.copy()
 
     if search and not df.empty:
