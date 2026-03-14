@@ -353,7 +353,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">🌐 Ficha Territorial</div>
-        <div class="apc-header-subtitle">Cooperación Internacional en los Departamentos de Colombia</div>
+        <div class="apc-header-subtitle">Caracterización por departamento</div>
     </div>
     <div class="apc-logo-badge">APC · Colombia</div>
 </div>
