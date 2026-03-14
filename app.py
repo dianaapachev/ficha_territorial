@@ -424,7 +424,7 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios intervenidos", municipios_count)
+    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -522,7 +522,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
+st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
