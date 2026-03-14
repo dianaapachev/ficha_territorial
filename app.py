@@ -315,7 +315,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Caracterizacion por departamento</div>
+        <div class="apc-header-subtitle">Caracterización por departamento</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -376,7 +376,7 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    st.markdown('<div class="section-header">Informacion General</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Información General</div>', unsafe_allow_html=True)
 
     if info.empty:
         st.warning("No encontre el departamento en la tabla infogeneral.")
@@ -422,7 +422,7 @@ with tab1:
         cic_dept["MUNICIPIO"].map(norm_text).nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios intervenidos", municipios_count)
+    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
