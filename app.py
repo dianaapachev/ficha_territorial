@@ -445,7 +445,8 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios intervenidos *Puede incluir \u00e1reas no municipalizadas", municipios_count)
+    m3.metric("Municipios o \u00e1reas intervenidas", municipios_count)
+    st.caption("\* Incluye municipios y \u00e1reas no municipalizadas")
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
