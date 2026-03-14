@@ -218,6 +218,11 @@ div[data-testid="stDownloadButton"] button:hover {
     padding-top: 1rem;
     border-top: 1px solid var(--apc-border);
 }
+div[data-testid="stToolbar"],
+div[data-testid="stDecoration"],
+header[data-testid="stHeader"] {
+    display: none !important;
+}            
 </style>
 """, unsafe_allow_html=True)
  
@@ -355,7 +360,7 @@ st.markdown("""
         <div class="apc-header-title">🌐 Ficha Territorial</div>
         <div class="apc-header-subtitle">Caracterización por departamento</div>
     </div>
-    <div class="apc-logo-badge">APC · Colombia</div>
+<img src="https://raw.githubusercontent.com/dianaapachev/ficha_territorial/main/Logo-APC-Color.png" style="height:55px; filter: brightness(0) invert(1);">
 </div>
 """, unsafe_allow_html=True)
  
