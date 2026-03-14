@@ -361,7 +361,7 @@ else:
 tab1, tab2, tab3 = st.tabs([
     "\U0001f4cb Ficha territorial",
     "\U0001f5c2\ufe0f Proyectos AOD",
-    "\U0001f4d6 Guia de usuario"
+    "\U0001f4d6 Gu\u00eda de usuario"
 ])
 
 
@@ -477,7 +477,7 @@ with tab1:
 
     p1, p2 = st.columns(2)
     with p1:
-        st.markdown("**ColCol - Colombia Ensena Colombia**")
+        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia**")
         st.metric("Registros encontrados", len(colcol_dept))
         colcol_view = colcol_dept.copy()
         if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
@@ -570,43 +570,44 @@ with tab3:
         unsafe_allow_html=True
     )
 
-    st.markdown("""
-    <div class="guia-card">
-        <div class="guia-intro">Que es la Ficha Territorial?</div>
-        <p>La ficha territorial es una aplicacion que permite conocer como se esta moviendo la
-        cooperacion internacional en los diferentes departamentos de Colombia.</p>
-        <p>En la primera seccion encontrara <strong>informacion general del territorio</strong>,
-        como la capital, el numero de municipios, la poblacion y otros datos relevantes para
-        la gestion de la cooperacion internacional. Tambien podra identificar si el departamento
-        cuenta con una dependencia encargada de estos temas, los enlaces o personas clave que
-        participan en la gobernanza de la cooperacion en el territorio y si dispone de un plan
-        de trabajo dentro del Sistema Nacional de Cooperacion Internacional, entre otros
-        elementos de contexto institucional.</p>
-        <p>Posteriormente, encontrara una seccion relacionada con la
-        <strong>Ayuda Oficial al Desarrollo (AOD)</strong>. Esta informacion proviene del
-        sistema de informacion Ciclope, administrado por la Agencia Presidencial de
-        Cooperacion Internacional de Colombia (APC-Colombia). En este apartado se presentan,
-        entre otros aspectos, los principales cooperantes presentes en el territorio, los
-        municipios que estan siendo intervenidos y una estimacion de los recursos provenientes
-        de cooperacion internacional. Asimismo, podra identificar los Objetivos de Desarrollo
-        Sostenible (ODS) que concentran mayor financiacion en cada departamento.</p>
-        <p>Finalmente, la ficha tambien muestra si el departamento participa en algunos de los
-        <strong>programas de la oferta institucional de APC-Colombia</strong>. Entre ellos se
-        encuentran la estrategia <em>Colombia Ensena Colombia</em>, orientada a promover
-        intercambios de conocimiento en diversas tematicas, y el
-        <em>Programa de Contrapartidas</em>, que busca facilitar recursos financieros para
-        fortalecer iniciativas que ya cuentan con financiacion de cooperacion internacional.</p>
-        <p>En la segunda pestana, denominada <strong>Proyectos AOD</strong>, encontrara el
-        listado de proyectos que, de acuerdo con el sistema de informacion Ciclope, se estan
-        ejecutando en cada departamento.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    guia_html = (
+        '<div class="guia-card">'
+        '<div class="guia-intro">\u00bfQu\u00e9 es la Ficha Territorial?</div>'
+        '<p>La ficha territorial es una aplicaci\u00f3n que permite conocer c\u00f3mo se est\u00e1 moviendo la '
+        'cooperaci\u00f3n internacional en los diferentes departamentos de Colombia.</p>'
+        '<p>En la primera secci\u00f3n encontrar\u00e1 <strong>informaci\u00f3n general del territorio</strong>, '
+        'como la capital, el n\u00famero de municipios, la poblaci\u00f3n y otros datos relevantes para '
+        'la gesti\u00f3n de la cooperaci\u00f3n internacional. Tambi\u00e9n podr\u00e1 identificar si el departamento '
+        'cuenta con una dependencia encargada de estos temas, los enlaces o personas clave que '
+        'participan en la gobernanza de la cooperaci\u00f3n en el territorio y si dispone de un plan '
+        'de trabajo dentro del Sistema Nacional de Cooperaci\u00f3n Internacional, entre otros '
+        'elementos de contexto institucional.</p>'
+        '<p>Posteriormente, encontrar\u00e1 una secci\u00f3n relacionada con la '
+        '<strong>Ayuda Oficial al Desarrollo (AOD)</strong>. Esta informaci\u00f3n proviene del '
+        'sistema de informaci\u00f3n C\u00edclope, administrado por la Agencia Presidencial de '
+        'Cooperaci\u00f3n Internacional de Colombia (APC-Colombia). En este apartado se presentan, '
+        'entre otros aspectos, los principales cooperantes presentes en el territorio, los '
+        'municipios que est\u00e1n siendo intervenidos y una estimaci\u00f3n de los recursos provenientes '
+        'de cooperaci\u00f3n internacional. Asimismo, podr\u00e1 identificar los Objetivos de Desarrollo '
+        'Sostenible (ODS) que concentran mayor financiaci\u00f3n en cada departamento.</p>'
+        '<p>Finalmente, la ficha tambi\u00e9n muestra si el departamento participa en algunos de los '
+        '<strong>programas de la oferta institucional de APC-Colombia</strong>. Entre ellos se '
+        'encuentran la estrategia <em>Colombia Ense\u00f1a Colombia</em>, orientada a promover '
+        'intercambios de conocimiento en diversas tem\u00e1ticas, y el '
+        '<em>Programa de Contrapartidas</em>, que busca facilitar recursos financieros para '
+        'fortalecer iniciativas que ya cuentan con financiaci\u00f3n de cooperaci\u00f3n internacional.</p>'
+        '<p>En la segunda pesta\u00f1a, denominada <strong>Proyectos AOD</strong>, encontrar\u00e1 el '
+        'listado de proyectos que, de acuerdo con el sistema de informaci\u00f3n C\u00edclope, se est\u00e1n '
+        'ejecutando en cada departamento.</p>'
+        '</div>'
+    )
+    st.markdown(guia_html, unsafe_allow_html=True)
 
     col_g1, col_g2 = st.columns(2)
     with col_g1:
-        st.info("**Pestana 1 - Ficha territorial**\n\nInformacion general, AOD y programas internos APC-Colombia por departamento. Incluye descarga en Excel.")
+        st.info("**Pesta\u00f1a 1 - Ficha territorial**\n\nInformaci\u00f3n general, AOD y programas internos APC-Colombia por departamento. Incluye descarga en Excel.")
     with col_g2:
-        st.info("**Pestana 2 - Proyectos AOD**\n\nListado completo de proyectos activos segun Ciclope. Descarga en CSV y Excel disponible.")
+        st.info("**Pesta\u00f1a 2 - Proyectos AOD**\n\nListado completo de proyectos activos seg\u00fan C\u00edclope. Descarga en CSV y Excel disponible.")
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
