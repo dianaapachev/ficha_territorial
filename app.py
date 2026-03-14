@@ -419,7 +419,9 @@ with tab1:
               cic_dept["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_dept.columns else 0)
     municipios_count = (
-        cic_dept["MUNICIPIO"].map(norm_text).nunique()
+        cic_dept["MUNICIPIO"].map(norm_text)
+        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
+        .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
     m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
