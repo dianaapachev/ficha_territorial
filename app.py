@@ -277,6 +277,27 @@ def top_by_sum(df, group_col, value_col, n=5):
     )
 
 
+
+ODS_NOMBRES = {
+    "ODS 1":  "ODS 1 - Fin de la pobreza",
+    "ODS 2":  "ODS 2 - Hambre cero",
+    "ODS 3":  "ODS 3 - Salud y bienestar",
+    "ODS 4":  "ODS 4 - Educaci\u00f3n de calidad",
+    "ODS 5":  "ODS 5 - Igualdad de g\u00e9nero",
+    "ODS 6":  "ODS 6 - Agua limpia y saneamiento",
+    "ODS 7":  "ODS 7 - Energ\u00eda asequible y no contaminante",
+    "ODS 8":  "ODS 8 - Trabajo decente y crecimiento econ\u00f3mico",
+    "ODS 9":  "ODS 9 - Industria, innovaci\u00f3n e infraestructura",
+    "ODS 10": "ODS 10 - Reducci\u00f3n de las desigualdades",
+    "ODS 11": "ODS 11 - Ciudades y comunidades sostenibles",
+    "ODS 12": "ODS 12 - Producci\u00f3n y consumo responsables",
+    "ODS 13": "ODS 13 - Acci\u00f3n por el clima",
+    "ODS 14": "ODS 14 - Vida submarina",
+    "ODS 15": "ODS 15 - Vida de ecosistemas terrestres",
+    "ODS 16": "ODS 16 - Paz, justicia e instituciones s\u00f3lidas",
+    "ODS 17": "ODS 17 - Alianzas para lograr los objetivos",
+}
+
 def to_excel_ficha(info_row, cic_dept, colcol_dept, contr_dept):
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -315,7 +336,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Caracterización por departamento</div>
+        <div class="apc-header-subtitle">Caracterizaci\u00f3n por departamento</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -376,7 +397,7 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    st.markdown('<div class="section-header">Información General</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Informaci\u00f3n General</div>', unsafe_allow_html=True)
 
     if info.empty:
         st.warning("No encontre el departamento en la tabla infogeneral.")
@@ -424,7 +445,7 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
+    m3.metric("Municipios o \u00e1reas no municipalizadas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -471,6 +492,7 @@ with tab1:
             st.altair_chart(chart_ods, use_container_width=True)
             top_ods_disp = top_ods.copy()
             top_ods_disp["VALOR APORTE (USD)"] = top_ods_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_ods_disp["ODS"] = top_ods_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
             st.dataframe(top_ods_disp, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos suficientes para ODS.")
@@ -660,6 +682,7 @@ with tab3:
             st.altair_chart(chart_ods_nac, use_container_width=True)
             top_ods_nac_disp = top_ods_nac.copy()
             top_ods_nac_disp["VALOR APORTE (USD)"] = top_ods_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_ods_nac_disp["ODS"] = top_ods_nac_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
             st.dataframe(top_ods_nac_disp, use_container_width=True, hide_index=True)
 
     with c_n4:
