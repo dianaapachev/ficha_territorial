@@ -417,9 +417,11 @@ with tab1:
     m2.metric("Cooperantes",
               cic_dept["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_dept.columns else 0)
-    m3.metric("Municipios intervenidos",
-              cic_dept["MUNICIPIO"].nunique()
-              if "MUNICIPIO" in cic_dept.columns else 0)
+    municipios_count = (
+        cic_dept["MUNICIPIO"].map(norm_text).nunique()
+        if "MUNICIPIO" in cic_dept.columns else 0
+    )
+    m3.metric("Municipios intervenidos", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -566,7 +568,7 @@ with tab2:
 with tab3:
 
     st.markdown(
-        '<div class="dept-title-banner">Guia de usuario</div>',
+        '<div class="dept-title-banner">Gu\u00eda de usuario</div>',
         unsafe_allow_html=True
     )
 
