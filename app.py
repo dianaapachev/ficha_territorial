@@ -58,15 +58,6 @@ html, body, [class*="css"] {
     font-family: 'Open Sans', sans-serif;
 }
 
-.dept-selector-card {
-    background: var(--apc-gray);
-    border: 1.5px solid var(--apc-border);
-    border-left: 5px solid var(--apc-blue);
-    border-radius: 10px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.2rem;
-}
-
 .section-header {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
@@ -185,6 +176,7 @@ div[data-testid="stDownloadButton"] button:hover {
     border-top: 1px solid var(--apc-border);
 }
 
+/* Ocultar barra superior de Streamlit */
 div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
 header[data-testid="stHeader"] {
@@ -220,6 +212,15 @@ def format_cop(n):
     except Exception:
         return ""
     return "$ " + f"{n:,.0f}".replace(",", ".")
+
+
+def get_col(row, *names):
+    """Busca una columna por varios nombres posibles (con y sin tilde)."""
+    for name in names:
+        val = row.get(name, None)
+        if val is not None and str(val).strip() not in ("", "None", "nan"):
+            return val
+    return ""
 
 
 @st.cache_data
@@ -309,6 +310,7 @@ def to_excel_proyectos(df_proj):
 # -------------------------
 st.set_page_config(page_title="Ficha Territorial | APC Colombia", layout="wide")
 
+# Header institucional
 st.markdown("""
 <div class="apc-header">
     <div>
@@ -323,9 +325,7 @@ infogeneral, plan, ciclope, colcol, contrapartidas, proyectos = load_data()
 DEPT_COL_INFO = "Departamento"
 depts = sorted(infogeneral[DEPT_COL_INFO].dropna().unique().tolist())
 
-st.markdown('<div class="dept-selector-card">', unsafe_allow_html=True)
 dept = st.selectbox("Selecciona un departamento", depts)
-st.markdown('</div>', unsafe_allow_html=True)
 
 dept_norm = norm_text(dept)
 infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
@@ -358,7 +358,11 @@ else:
     contr_dept = contrapartidas.iloc[0:0]
 
 
-tab1, tab2, tab3 = st.tabs(["Ficha territorial", "Proyectos AOD", "Guia de usuario"])
+tab1, tab2, tab3 = st.tabs([
+    "\U0001f4cb Ficha territorial",
+    "\U0001f5c2\ufe0f Proyectos AOD",
+    "\U0001f4d6 Guia de usuario"
+])
 
 
 # =========================================================
@@ -366,20 +370,30 @@ tab1, tab2, tab3 = st.tabs(["Ficha territorial", "Proyectos AOD", "Guia de usuar
 # =========================================================
 with tab1:
 
-    st.markdown(f'<div class="dept-title-banner">📍 {dept}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="dept-title-banner">\U0001f4cd {dept}</div>',
+        unsafe_allow_html=True
+    )
+
     st.markdown('<div class="section-header">Informacion General</div>', unsafe_allow_html=True)
 
     if info.empty:
         st.warning("No encontre el departamento en la tabla infogeneral.")
     else:
         c1, c2, c3 = st.columns(3)
-        c1.metric("Capital", info.iloc[0].get("Capital", ""))
-        c2.metric("Numero de Municipios",
-                  info.iloc[0].get("Numero de Municipios",
-                                   info.iloc[0].get("Municipios", "")))
-        pob = info.iloc[0].get("Poblacion", None)
-        pob_fmt = f"{int(float(pob)):,}".replace(",", ".") if pd.notna(pob) else ""
-        c3.metric("Poblacion", pob_fmt)
+
+        c1.metric("Capital", get_col(info.iloc[0], "Capital"))
+        c2.metric(
+            "N\u00famero de Municipios",
+            get_col(info.iloc[0], "N\u00famero de Municipios", "Numero de Municipios", "Municipios")
+        )
+
+        pob_raw = get_col(info.iloc[0], "Poblaci\u00f3n", "Poblacion", "Poblaci\u00f3n")
+        try:
+            pob_fmt = f"{int(float(pob_raw)):,}".replace(",", ".")
+        except Exception:
+            pob_fmt = str(pob_raw)
+        c3.metric("Poblaci\u00f3n", pob_fmt)
 
         with st.expander("Ver registro completo del departamento"):
             df_det = info.T.reset_index()
@@ -391,8 +405,10 @@ with tab1:
             ]
             st.dataframe(df_det, use_container_width=True, hide_index=True)
 
-    st.markdown('<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>',
+        unsafe_allow_html=True
+    )
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Intervenciones (unicas)",
@@ -454,8 +470,10 @@ with tab1:
         else:
             st.info("Sin datos suficientes para ODS.")
 
-    st.markdown('<div class="section-header">Programas Internos APC-Colombia</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">Programas Internos APC-Colombia</div>',
+        unsafe_allow_html=True
+    )
 
     p1, p2 = st.columns(2)
     with p1:
@@ -495,8 +513,10 @@ with tab1:
 # =========================================================
 with tab2:
 
-    st.markdown(f'<div class="dept-title-banner">📍 {dept} — Proyectos AOD activos</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
+        unsafe_allow_html=True
+    )
     st.caption("Fuente: Ciclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
@@ -545,7 +565,10 @@ with tab2:
 # =========================================================
 with tab3:
 
-    st.markdown('<div class="dept-title-banner">Guia de usuario</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="dept-title-banner">Guia de usuario</div>',
+        unsafe_allow_html=True
+    )
 
     st.markdown("""
     <div class="guia-card">
