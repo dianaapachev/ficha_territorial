@@ -336,6 +336,8 @@ proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 
 cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
+if norm_text(dept) == norm_text("BOGOTÁ, D.C."):
+    st.write(cic_dept["MUNICIPIO"].map(norm_text).unique().tolist())
 
 mask_colcol = pd.Series(False, index=colcol.index)
 if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
