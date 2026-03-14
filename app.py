@@ -315,7 +315,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Caracterización por departamento</div>
+        <div class="apc-header-subtitle">Caracterizacion por departamento</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -358,9 +358,10 @@ else:
     contr_dept = contrapartidas.iloc[0:0]
 
 
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "\U0001f4cb Ficha territorial",
     "\U0001f5c2\ufe0f Proyectos AOD",
+    "\U0001f310 Panorama Nacional",
     "\U0001f4d6 Gu\u00eda de usuario"
 ])
 
@@ -418,13 +419,10 @@ with tab1:
               cic_dept["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_dept.columns else 0)
     municipios_count = (
-        cic_dept["MUNICIPIO"].map(norm_text)
-        .replace("", pd.NA)
-        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA"])])
-        .nunique()
+        cic_dept["MUNICIPIO"].map(norm_text).nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
+    m3.metric("Municipios intervenidos", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -522,7 +520,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: Ciclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
@@ -565,10 +563,182 @@ st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
     )
 
 
+
 # =========================================================
-# TAB 3
+# TAB 3 - PANORAMA NACIONAL
 # =========================================================
 with tab3:
+
+    st.markdown(
+        '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
+        unsafe_allow_html=True
+    )
+    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025. Incluye \u00e1mbito nacional y territorial.")
+
+    # Calcular datos nacionales
+    cic_nacional = ciclope.copy()
+    cic_nacional["VALOR APORTE (USD)"] = pd.to_numeric(cic_nacional["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+
+    n1, n2, n3, n4 = st.columns(4)
+    n1.metric("Intervenciones (\u00fanicas)", cic_nacional["CODIGO INTERVENCION"].nunique()
+              if "CODIGO INTERVENCION" in cic_nacional.columns else 0)
+    n2.metric("Cooperantes", cic_nacional["NOMBRE ACTOR"].nunique()
+              if "NOMBRE ACTOR" in cic_nacional.columns else 0)
+    n3.metric("Departamentos con AOD",
+              cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
+              if "DEPARTAMENTO" in cic_nacional.columns else 0)
+    n4.metric("Total aporte estimado (USD)", format_usd(cic_nacional["VALOR APORTE (USD)"].sum()))
+
+    st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
+    c_n1, c_n2 = st.columns(2)
+
+    with c_n1:
+        st.markdown("**Top 10 cooperantes por recursos (USD)**")
+        top_coop_usd = (
+            cic_nacional.groupby("NOMBRE ACTOR")["VALOR APORTE (USD)"]
+            .sum().sort_values(ascending=False).head(10).reset_index()
+        )
+        if not top_coop_usd.empty:
+            chart_coop_usd = (
+                alt.Chart(top_coop_usd)
+                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
+                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                    tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_coop_usd, use_container_width=True)
+            top_coop_usd_disp = top_coop_usd.copy()
+            top_coop_usd_disp["VALOR APORTE (USD)"] = top_coop_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
+            st.dataframe(top_coop_usd_disp, use_container_width=True, hide_index=True)
+
+    with c_n2:
+        st.markdown("**Top 10 cooperantes por n\u00famero de intervenciones**")
+        top_coop_int = (
+            cic_nacional.groupby("NOMBRE ACTOR")["CODIGO INTERVENCION"]
+            .nunique().sort_values(ascending=False).head(10).reset_index()
+        )
+        top_coop_int.columns = ["NOMBRE ACTOR", "INTERVENCIONES"]
+        if not top_coop_int.empty:
+            chart_coop_int = (
+                alt.Chart(top_coop_int)
+                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
+                    x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
+                    tooltip=["NOMBRE ACTOR:N", "INTERVENCIONES:Q"]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_coop_int, use_container_width=True)
+            st.dataframe(top_coop_int, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="section-header">ODS y Sectores</div>', unsafe_allow_html=True)
+    c_n3, c_n4 = st.columns(2)
+
+    with c_n3:
+        st.markdown("**Top 10 ODS por recursos (USD)**")
+        top_ods_nac = (
+            cic_nacional.groupby("ODS")["VALOR APORTE (USD)"]
+            .sum().sort_values(ascending=False).head(10).reset_index()
+        )
+        if not top_ods_nac.empty:
+            chart_ods_nac = (
+                alt.Chart(top_ods_nac)
+                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("ODS:N", sort="-x", title=""),
+                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                    tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_ods_nac, use_container_width=True)
+            top_ods_nac_disp = top_ods_nac.copy()
+            top_ods_nac_disp["VALOR APORTE (USD)"] = top_ods_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
+            st.dataframe(top_ods_nac_disp, use_container_width=True, hide_index=True)
+
+    with c_n4:
+        st.markdown("**Top 10 sectores por recursos (USD)**")
+        top_sect_nac = (
+            cic_nacional.groupby("SECTORES GOB")["VALOR APORTE (USD)"]
+            .sum().sort_values(ascending=False).head(10).reset_index()
+        )
+        if not top_sect_nac.empty:
+            chart_sect_nac = (
+                alt.Chart(top_sect_nac)
+                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("SECTORES GOB:N", sort="-x", title=""),
+                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                    tooltip=["SECTORES GOB:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_sect_nac, use_container_width=True)
+            top_sect_nac_disp = top_sect_nac.copy()
+            top_sect_nac_disp["VALOR APORTE (USD)"] = top_sect_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
+            st.dataframe(top_sect_nac_disp, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="section-header">Departamentos</div>', unsafe_allow_html=True)
+    c_n5, c_n6 = st.columns(2)
+
+    with c_n5:
+        st.markdown("**Top 10 departamentos por recursos (USD)**")
+        top_dept_usd = (
+            cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+            .groupby("DEPARTAMENTO")["VALOR APORTE (USD)"]
+            .sum().sort_values(ascending=False).head(10).reset_index()
+        )
+        if not top_dept_usd.empty:
+            chart_dept_usd = (
+                alt.Chart(top_dept_usd)
+                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("DEPARTAMENTO:N", sort="-x", title=""),
+                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                    tooltip=["DEPARTAMENTO:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_dept_usd, use_container_width=True)
+            top_dept_usd_disp = top_dept_usd.copy()
+            top_dept_usd_disp["VALOR APORTE (USD)"] = top_dept_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
+            st.dataframe(top_dept_usd_disp, use_container_width=True, hide_index=True)
+
+    with c_n6:
+        st.markdown("**Top 10 departamentos por intervenciones**")
+        top_dept_int = (
+            cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+            .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"]
+            .nunique().sort_values(ascending=False).head(10).reset_index()
+        )
+        top_dept_int.columns = ["DEPARTAMENTO", "INTERVENCIONES"]
+        if not top_dept_int.empty:
+            chart_dept_int = (
+                alt.Chart(top_dept_int)
+                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("DEPARTAMENTO:N", sort="-x", title=""),
+                    x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
+                    tooltip=["DEPARTAMENTO:N", "INTERVENCIONES:Q"]
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart_dept_int, use_container_width=True)
+            st.dataframe(top_dept_int, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# TAB 4
+# =========================================================
+with tab4:
 
     st.markdown(
         '<div class="dept-title-banner">Gu\u00eda de usuario</div>',
