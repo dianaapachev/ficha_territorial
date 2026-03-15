@@ -505,7 +505,7 @@ with tab1:
 
     p1, p2 = st.columns(2)
     with p1:
-        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia**")
+        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia 2025-2026**")
         st.metric("Registros encontrados", len(colcol_dept))
         colcol_view = colcol_dept.copy()
         if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
@@ -516,7 +516,7 @@ with tab1:
         st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
 
     with p2:
-        st.markdown("**Contrapartidas**")
+        st.markdown("**Contrapartidas 2025-2026**")
         st.metric("Registros encontrados", len(contr_dept))
         st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
 
