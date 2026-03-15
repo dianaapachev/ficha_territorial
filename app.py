@@ -612,7 +612,9 @@ with tab3:
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
-    n4.metric("Total aporte estimado (USD)", format_usd(cic_nacional["VALOR APORTE (USD)"].sum()))
+    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
+    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
+    n4.metric("Total aporte estimado (USD)", total_nac_fmt)
 
     st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
     c_n1, c_n2 = st.columns(2)
