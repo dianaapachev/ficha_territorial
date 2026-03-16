@@ -7,6 +7,12 @@ import unicodedata
 import re
 import altair as alt
 from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 # -----------------------------------------------
 # Estilos APC Colombia
@@ -326,6 +332,315 @@ def to_excel_proyectos(df_proj):
     return output.getvalue()
 
 
+
+def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
+    output = BytesIO()
+    doc = SimpleDocTemplate(
+        output, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+
+    # Colores institucionales
+    AZUL = colors.HexColor("#003087")
+    AZUL_CLARO = colors.HexColor("#E8F0FE")
+    GRIS = colors.HexColor("#F5F7FA")
+    GRIS_BORDE = colors.HexColor("#D0D9EA")
+    BLANCO = colors.white
+
+    styles = getSampleStyleSheet()
+
+    # Estilos personalizados
+    estilo_titulo = ParagraphStyle("titulo",
+        fontName="Helvetica-Bold", fontSize=20, textColor=BLANCO,
+        spaceAfter=4, leading=24)
+    estilo_subtitulo = ParagraphStyle("subtitulo",
+        fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#CBD5E1"),
+        spaceAfter=0)
+    estilo_dept = ParagraphStyle("dept",
+        fontName="Helvetica-Bold", fontSize=15, textColor=BLANCO,
+        spaceAfter=0, leading=20)
+    estilo_seccion = ParagraphStyle("seccion",
+        fontName="Helvetica-Bold", fontSize=11, textColor=AZUL,
+        spaceBefore=14, spaceAfter=6)
+    estilo_normal = ParagraphStyle("normal",
+        fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#1A1A2E"),
+        spaceAfter=3, leading=13)
+    estilo_label = ParagraphStyle("label",
+        fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#6B7280"),
+        spaceAfter=1)
+    estilo_valor = ParagraphStyle("valor",
+        fontName="Helvetica-Bold", fontSize=14, textColor=AZUL,
+        spaceAfter=2)
+    estilo_caption = ParagraphStyle("caption",
+        fontName="Helvetica", fontSize=7, textColor=colors.HexColor("#6B7280"),
+        spaceAfter=4, alignment=TA_CENTER)
+
+    story = []
+
+    # --- HEADER ---
+    header_data = [[
+        Paragraph("Ficha Territorial", estilo_titulo),
+        ""
+    ],[
+        Paragraph("Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia", estilo_subtitulo),
+        Paragraph("APC-Colombia", ParagraphStyle("badge",
+            fontName="Helvetica-Bold", fontSize=9, textColor=BLANCO,
+            alignment=TA_CENTER))
+    ]]
+    header_table = Table(header_data, colWidths=["75%", "25%"])
+    header_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("ROUNDEDCORNERS", [8,8,8,8]),
+        ("TOPPADDING", (0,0), (-1,-1), 14),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+        ("LEFTPADDING", (0,0), (0,-1), 16),
+        ("RIGHTPADDING", (-1,0), (-1,-1), 16),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 10))
+
+    # --- BANNER DEPARTAMENTO ---
+    dept_table = Table([[Paragraph(f"\U0001f4cd  {dept}", estilo_dept)]], colWidths=["100%"])
+    dept_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("ROUNDEDCORNERS", [8,8,8,8]),
+        ("TOPPADDING", (0,0), (-1,-1), 10),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 10),
+        ("LEFTPADDING", (0,0), (-1,-1), 14),
+    ]))
+    story.append(dept_table)
+    story.append(Spacer(1, 10))
+
+    # --- INFORMACION GENERAL ---
+    story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+    story.append(Paragraph("Informaci\u00f3n General", estilo_seccion))
+
+    if not info_row.empty:
+        row = info_row.iloc[0]
+
+        # Metricas principales
+        capital = str(row.get("Capital", ""))
+        municipios = str(row.get("N\u00famero de Municipios", row.get("Numero de Municipios", row.get("Municipios", ""))))
+        pob_raw = row.get("Poblaci\u00f3n", row.get("Poblacion", ""))
+        try:
+            poblacion = f"{int(float(pob_raw)):,}".replace(",", ".")
+        except:
+            poblacion = str(pob_raw)
+
+        metrics_data = [
+            [Paragraph("CAPITAL", estilo_label),
+             Paragraph("N\u00daMERO DE MUNICIPIOS", estilo_label),
+             Paragraph("POBLACI\u00d3N", estilo_label)],
+            [Paragraph(capital, estilo_valor),
+             Paragraph(municipios, estilo_valor),
+             Paragraph(poblacion, estilo_valor)],
+        ]
+        metrics_table = Table(metrics_data, colWidths=["33%", "33%", "34%"])
+        metrics_table.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), GRIS),
+            ("BOX", (0,0), (0,-1), 1, GRIS_BORDE),
+            ("BOX", (1,0), (1,-1), 1, GRIS_BORDE),
+            ("BOX", (2,0), (2,-1), 1, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("LEFTPADDING", (0,0), (-1,-1), 10),
+            ("LINEABOVE", (0,0), (-1,0), 3, AZUL),
+            ("ROUNDEDCORNERS", [6,6,6,6]),
+        ]))
+        story.append(metrics_table)
+        story.append(Spacer(1, 8))
+
+        # Registro completo
+        story.append(Paragraph("Informaci\u00f3n detallada del departamento", estilo_seccion))
+        df_det = info_row.T.reset_index()
+        df_det.columns = ["Campo", "Valor"]
+        df_det = df_det[~df_det["Campo"].astype(str).str.lower().str.strip().isin(
+            ["porcentaje de avance", "dept_norm"])]
+        df_det = df_det[df_det["Valor"].astype(str).str.strip().isin(["", "None", "nan"]) == False]
+
+        tabla_info = []
+        for _, fila in df_det.iterrows():
+            tabla_info.append([
+                Paragraph(str(fila["Campo"]), estilo_label),
+                Paragraph(str(fila["Valor"]), estilo_normal)
+            ])
+
+        if tabla_info:
+            t = Table(tabla_info, colWidths=["35%", "65%"])
+            t.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,-1), BLANCO),
+                ("ROWBACKGROUNDS", (0,0), (-1,-1), [BLANCO, GRIS]),
+                ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+                ("TOPPADDING", (0,0), (-1,-1), 5),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+                ("LEFTPADDING", (0,0), (-1,-1), 8),
+            ]))
+            story.append(t)
+
+    story.append(Spacer(1, 10))
+
+    # --- AOD ---
+    story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+    story.append(Paragraph("Ayuda Oficial al Desarrollo (AOD)", estilo_seccion))
+    story.append(Paragraph(
+        "Fuente: C\u00edclope a corte de 31 de diciembre de 2025",
+        estilo_caption))
+
+    cic = cic_dept.drop(columns=["DEPT_NORM"], errors="ignore")
+    intervenciones = cic["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic.columns else 0
+    cooperantes = cic["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic.columns else 0
+    municipios_aod = (
+        cic["MUNICIPIO"].map(norm_text)
+        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
+        .nunique() if "MUNICIPIO" in cic.columns else 0
+    )
+    total_usd = cic["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic.columns else 0
+    total_fmt = "USD " + f"{total_usd:,.0f}".replace(",", ".")
+
+    aod_metrics = [
+        [Paragraph("INTERVENCIONES", estilo_label),
+         Paragraph("COOPERANTES", estilo_label),
+         Paragraph("MUNICIPIOS / \u00c1REAS", estilo_label),
+         Paragraph("TOTAL APORTE (USD)", estilo_label)],
+        [Paragraph(str(intervenciones), estilo_valor),
+         Paragraph(str(cooperantes), estilo_valor),
+         Paragraph(str(municipios_aod), estilo_valor),
+         Paragraph(total_fmt, ParagraphStyle("valor_small",
+             fontName="Helvetica-Bold", fontSize=10, textColor=AZUL))],
+    ]
+    t_aod = Table(aod_metrics, colWidths=["25%","25%","25%","25%"])
+    t_aod.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), GRIS),
+        ("LINEABOVE", (0,0), (-1,0), 3, AZUL),
+        ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+        ("TOPPADDING", (0,0), (-1,-1), 8),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+        ("LEFTPADDING", (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_aod)
+    story.append(Spacer(1, 8))
+
+    # Top cooperantes
+    if "NOMBRE ACTOR" in cic.columns and "VALOR APORTE (USD)" in cic.columns:
+        top_coop = (cic.groupby("NOMBRE ACTOR")["VALOR APORTE (USD)"]
+                    .sum().sort_values(ascending=False).head(5).reset_index())
+        story.append(Paragraph("Top 5 cooperantes por aporte estimado (USD)", estilo_seccion))
+        coop_data = [[
+            Paragraph("COOPERANTE", estilo_label),
+            Paragraph("APORTE ESTIMADO", estilo_label)
+        ]]
+        for _, r in top_coop.iterrows():
+            coop_data.append([
+                Paragraph(str(r["NOMBRE ACTOR"]), estilo_normal),
+                Paragraph("USD " + f"{r['VALOR APORTE (USD)']:,.0f}".replace(",","."), estilo_normal)
+            ])
+        t_coop = Table(coop_data, colWidths=["70%","30%"])
+        t_coop.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 8),
+            ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ]))
+        story.append(t_coop)
+        story.append(Spacer(1, 8))
+
+    # Top ODS
+    if "ODS" in cic.columns and "VALOR APORTE (USD)" in cic.columns:
+        top_ods = (cic.groupby("ODS")["VALOR APORTE (USD)"]
+                   .sum().sort_values(ascending=False).head(5).reset_index())
+        story.append(Paragraph("Top 5 ODS por aporte estimado (USD)", estilo_seccion))
+        ods_data = [[
+            Paragraph("ODS", estilo_label),
+            Paragraph("APORTE ESTIMADO", estilo_label)
+        ]]
+        for _, r in top_ods.iterrows():
+            nombre_ods = ODS_NOMBRES.get(r["ODS"], r["ODS"])
+            ods_data.append([
+                Paragraph(nombre_ods, estilo_normal),
+                Paragraph("USD " + f"{r['VALOR APORTE (USD)']:,.0f}".replace(",","."), estilo_normal)
+            ])
+        t_ods = Table(ods_data, colWidths=["70%","30%"])
+        t_ods.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 8),
+            ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ]))
+        story.append(t_ods)
+
+    story.append(Spacer(1, 10))
+
+    # --- PROGRAMAS INTERNOS ---
+    story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+    story.append(Paragraph("Programas Internos APC-Colombia", estilo_seccion))
+
+    # ColCol
+    story.append(Paragraph(f"ColCol - Colombia Ense\u00f1a Colombia ({len(colcol_dept)} registros)", estilo_label))
+    if not colcol_dept.empty:
+        cols_colcol = [c for c in colcol_dept.columns if c not in ["DEPT_NORM"]]
+        colcol_show = colcol_dept[cols_colcol].head(20)
+        cc_data = [[Paragraph(str(c), estilo_label) for c in colcol_show.columns]]
+        for _, r in colcol_show.iterrows():
+            cc_data.append([Paragraph(str(v)[:60], estilo_normal) for v in r.values])
+        n_cols = len(colcol_show.columns)
+        t_cc = Table(cc_data, colWidths=[f"{100/n_cols}%" for _ in range(n_cols)])
+        t_cc.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ("LEFTPADDING", (0,0), (-1,-1), 5),
+            ("FONTSIZE", (0,0), (-1,-1), 7),
+        ]))
+        story.append(t_cc)
+    else:
+        story.append(Paragraph("Sin registros para este departamento.", estilo_normal))
+
+    story.append(Spacer(1, 8))
+
+    # Contrapartidas
+    story.append(Paragraph(f"Contrapartidas ({len(contr_dept)} registros)", estilo_label))
+    if not contr_dept.empty:
+        cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM"]]
+        contr_show = contr_dept[cols_contr].head(20)
+        ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
+        for _, r in contr_show.iterrows():
+            ct_data.append([Paragraph(str(v)[:60], estilo_normal) for v in r.values])
+        n_cols = len(contr_show.columns)
+        t_ct = Table(ct_data, colWidths=[f"{100/n_cols}%" for _ in range(n_cols)])
+        t_ct.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ("LEFTPADDING", (0,0), (-1,-1), 5),
+            ("FONTSIZE", (0,0), (-1,-1), 7),
+        ]))
+        story.append(t_ct)
+    else:
+        story.append(Paragraph("Sin registros para este departamento.", estilo_normal))
+
+    # Footer
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=GRIS_BORDE, spaceAfter=4))
+    story.append(Paragraph(
+        "Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia - APC-Colombia",
+        estilo_caption))
+
+    doc.build(story)
+    output.seek(0)
+    return output.getvalue()
+
 # -------------------------
 # APP
 # -------------------------
@@ -336,7 +651,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Herramienta de monitoreo para la gestión de la cooperación internacional</div>
+        <div class="apc-header-subtitle">Caracterizaci\u00f3n por departamento</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -445,8 +760,7 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o \u00e1reas intervenidas", municipios_count)
-    st.caption("\* Incluye municipios y \u00e1reas no municipalizadas")
+    m3.metric("Municipios o \u00e1reas no municipalizadas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -505,7 +819,7 @@ with tab1:
 
     p1, p2 = st.columns(2)
     with p1:
-        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia 2025-2026**")
+        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia**")
         st.metric("Registros encontrados", len(colcol_dept))
         colcol_view = colcol_dept.copy()
         if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
@@ -516,19 +830,29 @@ with tab1:
         st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
 
     with p2:
-        st.markdown("**Contrapartidas 2025-2026**")
+        st.markdown("**Contrapartidas**")
         st.metric("Registros encontrados", len(contr_dept))
         st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
     excel_ficha = to_excel_ficha(info, cic_dept, colcol_dept, contr_dept)
-    st.download_button(
-        label="Descargar Ficha Territorial (Excel)",
-        data=excel_ficha,
-        file_name=f"Ficha_Territorial_{dept}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+    col_pdf, col_xlsx = st.columns(2)
+    with col_xlsx:
+        st.download_button(
+            label="Descargar Ficha Territorial (Excel)",
+            data=excel_ficha,
+            file_name=f"Ficha_Territorial_{dept}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with col_pdf:
+        pdf_ficha = to_pdf_ficha(dept, info, cic_dept, colcol_dept, contr_dept)
+        st.download_button(
+            label="Descargar Ficha Territorial (PDF)",
+            data=pdf_ficha,
+            file_name=f"Ficha_Territorial_{dept}.pdf",
+            mime="application/pdf",
+        )
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
@@ -545,7 +869,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: Ciclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
@@ -612,9 +936,7 @@ with tab3:
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
-    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
-    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
-    n4.metric("Total aporte estimado (USD)", total_nac_fmt)
+    n4.metric("Total aporte estimado (USD)", format_usd(cic_nacional["VALOR APORTE (USD)"].sum()))
 
     st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
     c_n1, c_n2 = st.columns(2)
