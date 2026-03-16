@@ -602,6 +602,12 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
             "PRESUPUESTO ESTIMADO APC COLOMBIA": "Presupuesto APC",
             "RUBRO ASUMIDO": "Rubro"
         }
+        colcol_show = colcol_show.copy()
+        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_show.columns:
+            colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+                pd.to_numeric(colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
+                .apply(format_cop)
+            )
         cc_data = [[Paragraph(HEADERS_COLCOL.get(c, c), estilo_label) for c in colcol_show.columns]]
         for _, r in colcol_show.iterrows():
             cc_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
@@ -625,7 +631,10 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
     story.append(Paragraph(f"Contrapartidas ({len(contr_dept)} registros)", estilo_label))
     if not contr_dept.empty:
         cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM", "Departamento"]]
-        contr_show = contr_dept[cols_contr].head(30)
+        contr_show = contr_dept[cols_contr].head(30).copy()
+        for col in contr_show.columns:
+            if str(col).strip().strip("\'") in ["Monto por APC", "Monto total", "Monto total "]:
+                contr_show[col] = pd.to_numeric(contr_show[col], errors="coerce").apply(format_cop)
         ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
         for _, r in contr_show.iterrows():
             ct_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
