@@ -585,46 +585,61 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
     # ColCol
     story.append(Paragraph(f"ColCol - Colombia Ense\u00f1a Colombia ({len(colcol_dept)} registros)", estilo_label))
     if not colcol_dept.empty:
-        cols_colcol = [c for c in colcol_dept.columns if c not in ["DEPT_NORM"]]
-        colcol_show = colcol_dept[cols_colcol].head(20)
-        cc_data = [[Paragraph(str(c), estilo_label) for c in colcol_show.columns]]
+        COLS_COLCOL = [
+            "NOMBRE DEL INTERCAMBIO",
+            "A\u00d1O DE REALIZACI\u00d3N ",
+            "DEPARTAMENTO EN EL QUE SE DESARROLL\u00d3",
+            "PRESUPUESTO ESTIMADO APC COLOMBIA",
+            "RUBRO ASUMIDO"
+        ]
+        cols_colcol = [c for c in COLS_COLCOL if c in colcol_dept.columns]
+        colcol_show = colcol_dept[cols_colcol].head(30)
+        HEADERS_COLCOL = {
+            "NOMBRE DEL INTERCAMBIO": "Nombre del intercambio",
+            "A\u00d1O DE REALIZACI\u00d3N ": "A\u00f1o",
+            "DEPARTAMENTO EN EL QUE SE DESARROLL\u00d3": "Departamento",
+            "PRESUPUESTO ESTIMADO APC COLOMBIA": "Presupuesto APC",
+            "RUBRO ASUMIDO": "Rubro"
+        }
+        cc_data = [[Paragraph(HEADERS_COLCOL.get(c, c), estilo_label) for c in colcol_show.columns]]
         for _, r in colcol_show.iterrows():
-            cc_data.append([Paragraph(str(v)[:60], estilo_normal) for v in r.values])
-        n_cols = len(colcol_show.columns)
-        t_cc = Table(cc_data, colWidths=[f"{100/n_cols}%" for _ in range(n_cols)])
+            cc_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
+        col_widths_cc = ["35%", "8%", "18%", "22%", "17%"][:len(colcol_show.columns)]
+        t_cc = Table(cc_data, colWidths=col_widths_cc)
         t_cc.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
             ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
             ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
-            ("TOPPADDING", (0,0), (-1,-1), 4),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-            ("LEFTPADDING", (0,0), (-1,-1), 5),
-            ("FONTSIZE", (0,0), (-1,-1), 7),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("FONTSIZE", (0,0), (-1,-1), 8),
         ]))
         story.append(t_cc)
     else:
         story.append(Paragraph("Sin registros para este departamento.", estilo_normal))
-
     story.append(Spacer(1, 8))
 
     # Contrapartidas
     story.append(Paragraph(f"Contrapartidas ({len(contr_dept)} registros)", estilo_label))
     if not contr_dept.empty:
-        cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM"]]
-        contr_show = contr_dept[cols_contr].head(20)
+        cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM", "Departamento"]]
+        contr_show = contr_dept[cols_contr].head(30)
         ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
         for _, r in contr_show.iterrows():
-            ct_data.append([Paragraph(str(v)[:60], estilo_normal) for v in r.values])
+            ct_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
         n_cols = len(contr_show.columns)
-        t_ct = Table(ct_data, colWidths=[f"{100/n_cols}%" for _ in range(n_cols)])
+        col_w = 100 / n_cols
+        t_ct = Table(ct_data, colWidths=[f"{col_w}%" for _ in range(n_cols)])
         t_ct.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
             ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
             ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
-            ("TOPPADDING", (0,0), (-1,-1), 4),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-            ("LEFTPADDING", (0,0), (-1,-1), 5),
-            ("FONTSIZE", (0,0), (-1,-1), 7),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("FONTSIZE", (0,0), (-1,-1), 8),
+            ("WORDWRAP", (0,0), (-1,-1), True),
         ]))
         story.append(t_ct)
     else:
