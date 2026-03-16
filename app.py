@@ -632,16 +632,10 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
         cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM", "Departamento"]]
         contr_show = contr_dept[cols_contr].head(30)
         contr_show = contr_show.copy()
-        if "Monto por APC" in contr_show.columns:
-            contr_show["Monto por APC"] = (
-                pd.to_numeric(contr_show["Monto por APC"], errors="coerce")
-                .apply(format_cop)
-            )
-        if "Monto total " in contr_show.columns:
-            contr_show["Monto total "] = (
-                pd.to_numeric(contr_show["Monto total "], errors="coerce")
-                .apply(format_cop)
-            )
+        for col in contr_show.columns:
+            col_clean = str(col).strip().strip("\'").strip()
+            if col_clean in ["Monto por APC", "Monto total", "Monto total "]:
+                contr_show[col] = pd.to_numeric(contr_show[col], errors="coerce").apply(format_cop)
         ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
         for _, r in contr_show.iterrows():
             ct_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
