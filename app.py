@@ -601,6 +601,12 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
             "PRESUPUESTO ESTIMADO APC COLOMBIA": "Presupuesto APC",
             "RUBRO ASUMIDO": "Rubro"
         }
+        colcol_show = colcol_show.copy()
+        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_show.columns:
+            colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+                pd.to_numeric(colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
+                .apply(format_cop)
+            )
         cc_data = [[Paragraph(HEADERS_COLCOL.get(c, c), estilo_label) for c in colcol_show.columns]]
         for _, r in colcol_show.iterrows():
             cc_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
@@ -625,6 +631,17 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
     if not contr_dept.empty:
         cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM", "Departamento"]]
         contr_show = contr_dept[cols_contr].head(30)
+        contr_show = contr_show.copy()
+        if "Monto por APC" in contr_show.columns:
+            contr_show["Monto por APC"] = (
+                pd.to_numeric(contr_show["Monto por APC"], errors="coerce")
+                .apply(format_cop)
+            )
+        if "Monto total " in contr_show.columns:
+            contr_show["Monto total "] = (
+                pd.to_numeric(contr_show["Monto total "], errors="coerce")
+                .apply(format_cop)
+            )
         ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
         for _, r in contr_show.iterrows():
             ct_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
@@ -666,7 +683,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Herramienta de caracterización para la gestión de la cooperación internacional</div>
+        <div class="apc-header-subtitle">Herramienta de caracterizaci\u00f3n para la gesti\u00f3n de la cooperaci\u00f3n internacional</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -884,7 +901,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
