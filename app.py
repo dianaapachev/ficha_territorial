@@ -256,6 +256,7 @@ def load_data():
     ciclope = read_named_table(FILE, "ciclope")
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
+    contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
     proyectos = read_named_table(FILE, "proyectos")
 
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
