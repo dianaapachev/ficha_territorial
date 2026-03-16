@@ -859,7 +859,11 @@ with tab1:
     with p2:
         st.markdown("**Contrapartidas 2025-2026**")
         st.metric("Registros encontrados", len(contr_dept))
-        st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
+        contr_view = contr_dept.copy()
+        for col in ["Monto total ", "Monto total", "Monto por APC"]:
+            if col in contr_view.columns:
+                contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
+        st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
