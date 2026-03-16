@@ -545,7 +545,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: Ciclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
