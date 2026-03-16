@@ -256,6 +256,7 @@ def load_data():
     ciclope = read_named_table(FILE, "ciclope")
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
+    contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
     proyectos = read_named_table(FILE, "proyectos")
 
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
@@ -952,7 +953,11 @@ with tab1:
     with p2:
         st.markdown("**Contrapartidas 2025-2026**")
         st.metric("Registros encontrados", len(contr_dept))
-        st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
+        contr_view = contr_dept.copy()
+        for col in contr_view.columns:
+            if str(col).strip().strip("\'") in ["Monto por APC", "Monto total", "Monto total "]:
+                contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
+        st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
