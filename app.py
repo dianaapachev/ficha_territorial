@@ -666,7 +666,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Caracterizaci\u00f3n por departamento</div>
+        <div class="apc-header-subtitle">Herramienta de caracterización para la gestión de la cooperación internacional</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -775,7 +775,7 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o \u00e1reas no municipalizadas intervenidas", municipios_count)
+    m3.metric("Municipios o \u00e1reas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
@@ -834,7 +834,7 @@ with tab1:
 
     p1, p2 = st.columns(2)
     with p1:
-        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia**")
+        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia 2025-2026**")
         st.metric("Registros encontrados", len(colcol_dept))
         colcol_view = colcol_dept.copy()
         if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
@@ -845,7 +845,7 @@ with tab1:
         st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
 
     with p2:
-        st.markdown("**Contrapartidas**")
+        st.markdown("**Contrapartidas 2025-2026**")
         st.metric("Registros encontrados", len(contr_dept))
         st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
 
@@ -884,7 +884,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: Ciclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: Cíclope a corte de 31 de diciembre de 2025")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
@@ -951,7 +951,9 @@ with tab3:
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
-    n4.metric("Total aporte estimado (USD)", format_usd(cic_nacional["VALOR APORTE (USD)"].sum()))
+    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
+    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
+    n4.metric("Total aporte estimado (USD)", total_nac_fmt)
 
     st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
     c_n1, c_n2 = st.columns(2)
