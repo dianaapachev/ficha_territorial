@@ -256,7 +256,6 @@ def load_data():
     ciclope = read_named_table(FILE, "ciclope")
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
-    contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
     proyectos = read_named_table(FILE, "proyectos")
 
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
@@ -602,12 +601,6 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
             "PRESUPUESTO ESTIMADO APC COLOMBIA": "Presupuesto APC",
             "RUBRO ASUMIDO": "Rubro"
         }
-        colcol_show = colcol_show.copy()
-        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_show.columns:
-            colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
-                pd.to_numeric(colcol_show["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
-                .apply(format_cop)
-            )
         cc_data = [[Paragraph(HEADERS_COLCOL.get(c, c), estilo_label) for c in colcol_show.columns]]
         for _, r in colcol_show.iterrows():
             cc_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
@@ -632,11 +625,6 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
     if not contr_dept.empty:
         cols_contr = [c for c in contr_dept.columns if c not in ["DEPT_NORM", "Departamento"]]
         contr_show = contr_dept[cols_contr].head(30)
-        contr_show = contr_show.copy()
-        for col in contr_show.columns:
-            col_clean = str(col).strip().strip("\'").strip()
-            if col_clean in ["Monto por APC", "Monto total", "Monto total "]:
-                contr_show[col] = pd.to_numeric(contr_show[col], errors="coerce").apply(format_cop)
         ct_data = [[Paragraph(str(c), estilo_label) for c in contr_show.columns]]
         for _, r in contr_show.iterrows():
             ct_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
@@ -658,6 +646,111 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
         story.append(Paragraph("Sin registros para este departamento.", estilo_normal))
 
     # Footer
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=GRIS_BORDE, spaceAfter=4))
+    story.append(Paragraph(
+        "Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia - APC-Colombia",
+        estilo_caption))
+
+    doc.build(story)
+    output.seek(0)
+    return output.getvalue()
+
+
+def to_pdf_proyectos(dept, df_proj):
+    output = BytesIO()
+    doc = SimpleDocTemplate(
+        output, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+
+    AZUL = colors.HexColor("#003087")
+    AZUL_CLARO = colors.HexColor("#E8F0FE")
+    GRIS = colors.HexColor("#F5F7FA")
+    GRIS_BORDE = colors.HexColor("#D0D9EA")
+    BLANCO = colors.white
+
+    styles = getSampleStyleSheet()
+    estilo_titulo = ParagraphStyle("titulo", fontName="Helvetica-Bold", fontSize=20,
+        textColor=BLANCO, spaceAfter=4, leading=24)
+    estilo_subtitulo = ParagraphStyle("subtitulo", fontName="Helvetica", fontSize=9,
+        textColor=colors.HexColor("#CBD5E1"), spaceAfter=0)
+    estilo_dept = ParagraphStyle("dept", fontName="Helvetica-Bold", fontSize=15,
+        textColor=BLANCO, spaceAfter=0, leading=20)
+    estilo_label = ParagraphStyle("label", fontName="Helvetica-Bold", fontSize=8,
+        textColor=colors.HexColor("#6B7280"), spaceAfter=1)
+    estilo_normal = ParagraphStyle("normal", fontName="Helvetica", fontSize=8,
+        textColor=colors.HexColor("#1A1A2E"), spaceAfter=3, leading=11)
+    estilo_caption = ParagraphStyle("caption", fontName="Helvetica", fontSize=7,
+        textColor=colors.HexColor("#6B7280"), spaceAfter=4, alignment=TA_CENTER)
+
+    story = []
+
+    # Header
+    header_data = [[
+        Paragraph("Ficha Territorial", estilo_titulo), ""
+    ],[
+        Paragraph("Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia", estilo_subtitulo), ""
+    ]]
+    header_table = Table(header_data, colWidths=["100%", "0%"])
+    header_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("TOPPADDING", (0,0), (-1,-1), 14),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+        ("LEFTPADDING", (0,0), (-1,-1), 16),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 10))
+
+    # Banner departamento
+    dept_table = Table([[Paragraph(f"\U0001f4cd  {dept} \u2014 Proyectos AOD activos", estilo_dept)]], colWidths=["100%"])
+    dept_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("TOPPADDING", (0,0), (-1,-1), 10),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 10),
+        ("LEFTPADDING", (0,0), (-1,-1), 14),
+    ]))
+    story.append(dept_table)
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(
+        f"Total proyectos: {len(df_proj)} | Fuente: C\u00edclope a corte de 31 de diciembre de 2025",
+        estilo_caption))
+
+    # Tabla de proyectos
+    COLS = ["NOMBRE INTERVENCION", "FECHA INICIAL", "FECHA FINAL", "MUNICIPIO", "NOMBRE ACTOR"]
+    HEADERS = {
+        "NOMBRE INTERVENCION": "Nombre de la intervenci\u00f3n",
+        "FECHA INICIAL": "Fecha inicial",
+        "FECHA FINAL": "Fecha final",
+        "MUNICIPIO": "Municipio",
+        "NOMBRE ACTOR": "Cooperante"
+    }
+    COL_WIDTHS = ["32%", "10%", "10%", "16%", "32%"]
+
+    cols_available = [c for c in COLS if c in df_proj.columns]
+    widths_available = [COL_WIDTHS[COLS.index(c)] for c in cols_available]
+
+    if not df_proj.empty and cols_available:
+        proj_data = [[Paragraph(HEADERS.get(c, c), estilo_label) for c in cols_available]]
+        for _, r in df_proj[cols_available].iterrows():
+            proj_data.append([Paragraph(str(v)[:120] if v and str(v) != "nan" else "", estilo_normal) for v in r.values])
+
+        t_proj = Table(proj_data, colWidths=widths_available, repeatRows=1)
+        t_proj.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("FONTSIZE", (0,0), (-1,-1), 8),
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ]))
+        story.append(t_proj)
+    else:
+        story.append(Paragraph("Sin proyectos para este departamento.", estilo_normal))
+
     story.append(Spacer(1, 16))
     story.append(HRFlowable(width="100%", thickness=0.5, color=GRIS_BORDE, spaceAfter=4))
     story.append(Paragraph(
@@ -859,11 +952,7 @@ with tab1:
     with p2:
         st.markdown("**Contrapartidas 2025-2026**")
         st.metric("Registros encontrados", len(contr_dept))
-        contr_view = contr_dept.copy()
-        for col in ["Monto total ", "Monto total", "Monto por APC"]:
-            if col in contr_view.columns:
-                contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
-        st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
+        st.dataframe(contr_dept.head(50), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
@@ -922,19 +1011,20 @@ with tab2:
 
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
-        st.download_button(
-            "Descargar CSV filtrado",
-            data=df.to_csv(index=False).encode("utf-8"),
-            file_name=f"proyectos_aod_{dept}.csv",
-            mime="text/csv"
-        )
-    with col_dl2:
         excel_proj = to_excel_proyectos(df)
         st.download_button(
             label="Descargar Excel",
             data=excel_proj,
             file_name=f"Proyectos_AOD_{dept}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with col_dl2:
+        pdf_proj = to_pdf_proyectos(dept, df)
+        st.download_button(
+            label="Descargar PDF",
+            data=pdf_proj,
+            file_name=f"Proyectos_AOD_{dept}.pdf",
+            mime="application/pdf",
         )
 
     st.markdown(
