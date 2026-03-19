@@ -824,7 +824,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Herramienta de caracterizaci\u00f3n para la gesti\u00f3n de la cooperaci\u00f3n internacional</div>
+        <div class="apc-header-subtitle">Herramienta de caracterización territorial para la gestión de la cooperación internacional</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
