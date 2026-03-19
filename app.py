@@ -19,170 +19,213 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER
 # -----------------------------------------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600&display=swap');
 
 :root {
-    --apc-blue:   #003087;
-    --apc-green:  #4CAF50;
-    --apc-light:  #E8F0FE;
-    --apc-gray:   #F5F7FA;
-    --apc-border: #D0D9EA;
-    --apc-text:   #1A1A2E;
-    --apc-muted:  #6B7280;
-    --apc-white:  #FFFFFF;
-    --apc-accent: #1565C0;
+    --apc-blue:      #003087;
+    --apc-blue-mid:  #004BB4;
+    --apc-red:       #C8102E;
+    --apc-yellow:    #F5A623;
+    --apc-light:     #EEF3FB;
+    --apc-gray:      #F7F8FA;
+    --apc-gray-mid:  #EAECF0;
+    --apc-border:    #D1D9E6;
+    --apc-text:      #1C2B4A;
+    --apc-muted:     #5A6A85;
+    --apc-white:     #FFFFFF;
 }
 
 html, body, [class*="css"] {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Source Sans 3', sans-serif;
     color: var(--apc-text);
+    background-color: #F7F8FA;
 }
 
+/* \u2500\u2500 Header \u2500\u2500 */
 .apc-header {
-    background: linear-gradient(135deg, #003087 0%, #1565C0 60%, #1976D2 100%);
-    padding: 1.5rem 2rem 1.2rem 2rem;
-    border-radius: 0 0 16px 16px;
-    margin-bottom: 1.5rem;
+    background: #003087;
+    padding: 1.2rem 2.2rem 1rem 2.2rem;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
-    box-shadow: 0 4px 20px rgba(0,48,135,0.25);
+    justify-content: space-between;
+    border-bottom: 4px solid var(--apc-red);
 }
 .apc-header-title {
     color: white;
     font-family: 'Montserrat', sans-serif;
-    font-size: 1.7rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 .apc-header-subtitle {
-    color: rgba(255,255,255,0.85);
-    font-size: 0.85rem;
+    color: rgba(255,255,255,0.75);
+    font-size: 0.82rem;
     font-weight: 400;
-    margin-top: 2px;
-    font-family: 'Open Sans', sans-serif;
+    margin-top: 3px;
+    font-family: 'Source Sans 3', sans-serif;
+    letter-spacing: 0.3px;
+}
+.apc-flag-bar {
+    height: 5px;
+    background: linear-gradient(90deg, #F5A623 33.3%, #003087 33.3% 66.6%, #C8102E 66.6%);
+    margin-bottom: 1.5rem;
 }
 
-.section-header {
+/* \u2500\u2500 Selector card \u2500\u2500 */
+.dept-selector-card {
+    background: var(--apc-white);
+    border-left: 5px solid var(--apc-blue);
+    border-radius: 0 8px 8px 0;
+    padding: 0.9rem 1.4rem;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 1px 4px rgba(0,48,135,0.07);
+}
+
+/* \u2500\u2500 Banner departamento \u2500\u2500 */
+.dept-title-banner {
+    background: var(--apc-blue);
+    color: white;
     font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
     font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--apc-blue);
-    border-bottom: 2px solid var(--apc-blue);
-    padding-bottom: 6px;
-    margin: 1.5rem 0 1rem 0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    margin-bottom: 1.2rem;
+    border-left: 6px solid var(--apc-red);
     letter-spacing: 0.2px;
 }
 
-.dept-title-banner {
-    background: linear-gradient(90deg, var(--apc-blue) 0%, var(--apc-accent) 100%);
-    color: white;
+/* \u2500\u2500 Section headers \u2500\u2500 */
+.section-header {
     font-family: 'Montserrat', sans-serif;
-    font-size: 1.35rem;
-    font-weight: 800;
-    padding: 0.7rem 1.5rem;
-    border-radius: 10px;
-    margin-bottom: 1rem;
-    letter-spacing: 0.3px;
-    box-shadow: 0 2px 10px rgba(0,48,135,0.18);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--apc-blue);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 3px solid var(--apc-yellow);
+    padding-bottom: 6px;
+    margin: 2rem 0 1rem 0;
 }
 
+/* \u2500\u2500 M\u00e9tricas \u2500\u2500 */
 div[data-testid="stMetric"] {
     background: var(--apc-white);
-    border: 1.5px solid var(--apc-border);
-    border-top: 4px solid var(--apc-blue);
-    border-radius: 10px;
-    padding: 1rem !important;
-    box-shadow: 0 2px 8px rgba(0,48,135,0.07);
-    transition: box-shadow 0.2s;
+    border: 1px solid var(--apc-border);
+    border-left: 5px solid var(--apc-blue);
+    border-radius: 6px;
+    padding: 1rem 1.1rem !important;
+    box-shadow: 0 1px 6px rgba(0,48,135,0.06);
+    transition: box-shadow 0.2s, border-left-color 0.2s;
 }
 div[data-testid="stMetric"]:hover {
-    box-shadow: 0 4px 16px rgba(0,48,135,0.14);
+    box-shadow: 0 4px 14px rgba(0,48,135,0.12);
+    border-left-color: var(--apc-red);
 }
 div[data-testid="stMetricLabel"] {
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: var(--apc-muted) !important;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
 }
 div[data-testid="stMetricValue"] {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
+    font-size: 1.6rem !important;
     color: var(--apc-blue) !important;
 }
 
+/* \u2500\u2500 Tabs \u2500\u2500 */
 button[data-baseweb="tab"] {
     font-family: 'Montserrat', sans-serif !important;
     font-weight: 600 !important;
-    font-size: 0.88rem !important;
-    letter-spacing: 0.3px;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--apc-muted) !important;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: var(--apc-blue) !important;
 }
 div[data-baseweb="tab-highlight"] {
-    background-color: var(--apc-blue) !important;
+    background-color: var(--apc-red) !important;
+    height: 3px !important;
 }
 div[data-baseweb="tab-border"] {
     background-color: var(--apc-border) !important;
 }
 
+/* \u2500\u2500 Dataframes \u2500\u2500 */
 div[data-testid="stDataFrame"] {
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     border: 1px solid var(--apc-border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
+/* \u2500\u2500 Botones descarga \u2500\u2500 */
 div[data-testid="stDownloadButton"] button {
     background: var(--apc-blue) !important;
     color: white !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 4px !important;
     font-family: 'Montserrat', sans-serif !important;
     font-weight: 600 !important;
-    padding: 0.5rem 1.3rem !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 0.5rem 1.4rem !important;
     transition: background 0.2s !important;
 }
 div[data-testid="stDownloadButton"] button:hover {
-    background: var(--apc-accent) !important;
+    background: var(--apc-red) !important;
 }
 
+/* \u2500\u2500 Guia card \u2500\u2500 */
 .guia-card {
     background: var(--apc-white);
     border: 1px solid var(--apc-border);
-    border-radius: 12px;
-    padding: 1.8rem 2.2rem;
+    border-radius: 8px;
+    padding: 2rem 2.4rem;
     margin-bottom: 1rem;
-    line-height: 1.75;
-    font-size: 0.96rem;
-    box-shadow: 0 2px 8px rgba(0,48,135,0.06);
+    line-height: 1.8;
+    font-size: 0.97rem;
+    box-shadow: 0 1px 6px rgba(0,48,135,0.05);
 }
 .guia-card p {
     color: var(--apc-text);
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
 }
 .guia-intro {
     font-family: 'Montserrat', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: var(--apc-blue);
     background: var(--apc-light);
-    border-left: 4px solid var(--apc-blue);
-    border-radius: 0 8px 8px 0;
+    border-left: 5px solid var(--apc-red);
+    border-radius: 0 6px 6px 0;
     padding: 0.8rem 1.2rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
+/* \u2500\u2500 Footer \u2500\u2500 */
 .apc-footer {
     text-align: center;
     color: var(--apc-muted);
-    font-size: 0.78rem;
-    margin-top: 2.5rem;
+    font-size: 0.76rem;
+    margin-top: 3rem;
     padding-top: 1rem;
     border-top: 1px solid var(--apc-border);
+    letter-spacing: 0.3px;
 }
 
-/* Ocultar barra superior de Streamlit */
+/* \u2500\u2500 Ocultar barra Streamlit \u2500\u2500 */
 div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
 header[data-testid="stHeader"] {
