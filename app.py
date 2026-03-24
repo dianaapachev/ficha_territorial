@@ -234,7 +234,7 @@ header[data-testid="stHeader"] {
 </style>
 """, unsafe_allow_html=True)
 
-FILE = "Ficha territorial.xlsm"
+FILE = "Ficha_territorial.xlsm"
 
 
 def norm_text(x):
@@ -933,7 +933,7 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o \u00e1reas intervenidas", municipios_count)
+    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
