@@ -225,7 +225,13 @@ div[data-testid="stDownloadButton"] button:hover {
     letter-spacing: 0.3px;
 }
 
-/* \u2500\u2500 Ocultar barra Streamlit \u2500\u2500 */
+div[data-testid="stMetricLabel"] p {
+    font-size: 0.65rem !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+}
+
+/* Ocultar barra Streamlit */
 div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
 header[data-testid="stHeader"] {
