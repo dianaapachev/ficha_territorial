@@ -231,6 +231,39 @@ div[data-testid="stMetricLabel"] p {
     white-space: normal !important;
 }
 
+/* Metrica personalizada con texto largo */
+.metric-custom {
+    background: var(--apc-white);
+    border: 1px solid var(--apc-border);
+    border-left: 5px solid var(--apc-blue);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 6px rgba(0,48,135,0.06);
+    transition: box-shadow 0.2s, border-left-color 0.2s;
+    height: 100%;
+}
+.metric-custom:hover {
+    box-shadow: 0 4px 14px rgba(0,48,135,0.12);
+    border-left-color: #C8102E;
+}
+.metric-custom-label {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 0.68rem;
+    color: #5A6A85;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.35;
+    margin-bottom: 0.4rem;
+}
+.metric-custom-value {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #003087;
+    line-height: 1.2;
+}
+
 /* Ocultar barra Streamlit */
 div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
@@ -830,7 +863,7 @@ st.markdown("""
 <div class="apc-header">
     <div>
         <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Herramienta de caracterización territorial para la gestión de la cooperación internacional</div>
+        <div class="apc-header-subtitle">Herramienta de caracterizaci\u00f3n territorial para la gesti\u00f3n de la cooperaci\u00f3n internacional</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -939,7 +972,14 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    m3.metric("Municipios o áreas no municipalizadas intervenidas", municipios_count)
+    with m3:
+        st.markdown(
+            f'<div class="metric-custom">'
+            f'<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
+            f'<div class="metric-custom-value">{municipios_count}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
         if "VALOR APORTE (USD)" in cic_dept.columns else 0
     m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
