@@ -582,7 +582,7 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
     story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
     story.append(Paragraph("Ayuda Oficial al Desarrollo (AOD)", estilo_seccion))
     story.append(Paragraph(
-        "Fuente: C\u00edclope a corte de 31 de diciembre de 2025",
+        "Fuente: C\u00edclope a corte de 26 de marzo de 2026",
         estilo_caption))
 
     cic = cic_dept.drop(columns=["DEPT_NORM"], errors="ignore")
@@ -1442,7 +1442,7 @@ with tab4:
         'Desarrollo Sostenible (ODS) y los sectores de gobierno con mayor financiaci\u00f3n, as\u00ed '
         'como los departamentos con mayor presencia de cooperaci\u00f3n internacional. La informaci\u00f3n '
         'incluye tanto las intervenciones de \u00e1mbito territorial como las de \u00e1mbito nacional.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver un comparativo con el trimestre 4 de 2025. '
+        '<p>En algunos indicadores podr\u00e1 ver un comparativo con el trimestre inmediatamente anterior. '
         'Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n respecto al per\u00edodo anterior. '
         'En la tarjeta de intervenciones encontrar\u00e1 las siguientes convenciones: '
         '\u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
