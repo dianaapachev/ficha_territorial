@@ -1147,7 +1147,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
