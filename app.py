@@ -263,6 +263,19 @@ div[data-testid="stMetricLabel"] p {
     color: #003087;
     line-height: 1.2;
 }
+.metric-custom-delta {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+.metric-custom-sub {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.72rem;
+    color: #5A6A85;
+    margin-top: 2px;
+    line-height: 1.4;
+}
 
 /* Ocultar barra Streamlit */
 div[data-testid="stToolbar"],
@@ -350,6 +363,10 @@ def load_data():
     if "VALOR APORTE (USD)" in ciclope.columns:
         ciclope["VALOR APORTE (USD)"] = pd.to_numeric(
             ciclope["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
+    if "VALOR APORTE (USD)" in ciclope_ant.columns:
+        ciclope_ant["VALOR APORTE (USD)"] = pd.to_numeric(
+            ciclope_ant["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
 
     return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos
@@ -881,9 +898,11 @@ infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
 info = infogeneral[infogeneral["DEPT_NORM"] == dept_norm].head(1)
 
 ciclope["DEPT_NORM"] = ciclope["DEPARTAMENTO"].map(norm_text)
+ciclope_ant["DEPT_NORM"] = ciclope_ant["DEPARTAMENTO"].map(norm_text)
 proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 
 cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
+cic_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
 
 mask_colcol = pd.Series(False, index=colcol.index)
@@ -961,9 +980,26 @@ with tab1:
     )
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Intervenciones (unicas)",
-              cic_dept["CODIGO INTERVENCION"].nunique()
-              if "CODIGO INTERVENCION" in cic_dept.columns else 0)
+    int_26 = cic_dept["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept.columns else 0
+    int_25 = cic_dept_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept_ant.columns else 0
+    cod_26 = set(cic_dept["CODIGO INTERVENCION"].dropna().unique())
+    cod_25 = set(cic_dept_ant["CODIGO INTERVENCION"].dropna().unique())
+    int_nuevas = len(cod_26 - cod_25)
+    int_activas = len(cod_26 & cod_25)
+    int_terminadas = len(cod_25 - cod_26)
+    delta_int = int_26 - int_25
+    delta_int_str = ("\u25b2 " if delta_int >= 0 else "\u25bc ") + str(abs(delta_int)) + " vs. 2025"
+    delta_int_color = "#2E7D32" if delta_int >= 0 else "#C8102E"
+    with m1:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
+            f'<div class="metric-custom-value">{int_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_int_color};">{delta_int_str}</div>'
+            f'<div class="metric-custom-sub">\u2665 {int_nuevas} nuevas &nbsp;|&nbsp; \u21ba {int_activas} contin\u00faan &nbsp;|&nbsp; \u2713 {int_terminadas} terminadas</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
     m2.metric("Cooperantes",
               cic_dept["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_dept.columns else 0)
@@ -973,17 +1009,38 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
+    municipios_count_ant = (
+        cic_dept_ant["MUNICIPIO"].map(norm_text)
+        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
+        .nunique()
+        if "MUNICIPIO" in cic_dept_ant.columns else 0
+    )
+    delta_mun = municipios_count - municipios_count_ant
+    delta_mun_str = ("\u25b2 " if delta_mun >= 0 else "\u25bc ") + str(abs(delta_mun)) + " vs. 2025"
+    delta_mun_color = "#2E7D32" if delta_mun >= 0 else "#C8102E"
     with m3:
         st.markdown(
-            f'<div class="metric-custom">'
-            f'<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
             f'<div class="metric-custom-value">{municipios_count}</div>'
-            f'</div>',
+            f'<div class="metric-custom-delta" style="color:{delta_mun_color};">{delta_mun_str}</div>'
+            '</div>',
             unsafe_allow_html=True
         )
-    total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
-        if "VALOR APORTE (USD)" in cic_dept.columns else 0
-    m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
+    total_usd = cic_dept["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept.columns else 0
+    total_usd_ant = cic_dept_ant["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept_ant.columns else 0
+    delta_usd = total_usd - total_usd_ant
+    delta_usd_str = ("\u25b2 " if delta_usd >= 0 else "\u25bc ") + format_usd(abs(delta_usd)) + " vs. 2025"
+    delta_usd_color = "#2E7D32" if delta_usd >= 0 else "#C8102E"
+    with m4:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Total aporte estimado (USD)</div>'
+            f'<div class="metric-custom-value" style="font-size:1.1rem;">{format_usd(total_usd)}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_usd_color};">{delta_usd_str}</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     c5, c6 = st.columns(2)
 
@@ -1003,8 +1060,15 @@ with tab1:
                 .properties(height=200)
             )
             st.altair_chart(chart_act, use_container_width=True)
+            top_act_ant = top_by_sum(cic_dept_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
             top_act_disp = top_act.copy()
-            top_act_disp["VALOR APORTE (USD)"] = top_act_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_act_disp.columns = ["NOMBRE ACTOR", "USD 2026"]
+            top_act_disp["USD 2026"] = top_act_disp["USD 2026"].apply(format_usd)
+            if not top_act_ant.empty:
+                top_act_ant_disp = top_act_ant.copy()
+                top_act_ant_disp.columns = ["NOMBRE ACTOR", "USD 2025"]
+                top_act_ant_disp["USD 2025"] = top_act_ant_disp["USD 2025"].apply(format_usd)
+                top_act_disp = top_act_disp.merge(top_act_ant_disp, on="NOMBRE ACTOR", how="left").fillna("-")
             st.dataframe(top_act_disp, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos suficientes para cooperantes.")
@@ -1025,9 +1089,17 @@ with tab1:
                 .properties(height=200)
             )
             st.altair_chart(chart_ods, use_container_width=True)
+            top_ods_ant = top_by_sum(cic_dept_ant, "ODS", "VALOR APORTE (USD)", 5)
             top_ods_disp = top_ods.copy()
-            top_ods_disp["VALOR APORTE (USD)"] = top_ods_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_ods_disp.columns = ["ODS", "USD 2026"]
             top_ods_disp["ODS"] = top_ods_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+            top_ods_disp["USD 2026"] = top_ods_disp["USD 2026"].apply(format_usd)
+            if not top_ods_ant.empty:
+                top_ods_ant_disp = top_ods_ant.copy()
+                top_ods_ant_disp.columns = ["ODS", "USD 2025"]
+                top_ods_ant_disp["ODS"] = top_ods_ant_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+                top_ods_ant_disp["USD 2025"] = top_ods_ant_disp["USD 2025"].apply(format_usd)
+                top_ods_disp = top_ods_disp.merge(top_ods_ant_disp, on="ODS", how="left").fillna("-")
             st.dataframe(top_ods_disp, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos suficientes para ODS.")
@@ -1147,23 +1219,55 @@ with tab3:
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025. Incluye \u00e1mbito nacional y territorial.")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026. Incluye \u00e1mbito nacional y territorial.")
 
     # Calcular datos nacionales
     cic_nacional = ciclope.copy()
     cic_nacional["VALOR APORTE (USD)"] = pd.to_numeric(cic_nacional["VALOR APORTE (USD)"], errors="coerce").fillna(0)
 
+    cic_ant_nac = ciclope_ant.copy()
+    cic_ant_nac["VALOR APORTE (USD)"] = pd.to_numeric(cic_ant_nac["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+    int_nac_26 = cic_nacional["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_nacional.columns else 0
+    int_nac_25 = cic_ant_nac["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_ant_nac.columns else 0
+    cod_nac_26 = set(cic_nacional["CODIGO INTERVENCION"].dropna().unique())
+    cod_nac_25 = set(cic_ant_nac["CODIGO INTERVENCION"].dropna().unique())
+    int_nac_nuevas = len(cod_nac_26 - cod_nac_25)
+    int_nac_activas = len(cod_nac_26 & cod_nac_25)
+    int_nac_terminadas = len(cod_nac_25 - cod_nac_26)
+    delta_nac_int = int_nac_26 - int_nac_25
+    delta_nac_int_str = ("\u25b2 " if delta_nac_int >= 0 else "\u25bc ") + str(abs(delta_nac_int)) + " vs. 2025"
+    delta_nac_int_color = "#2E7D32" if delta_nac_int >= 0 else "#C8102E"
+    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
+    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
+    total_nac_ant = cic_ant_nac["VALOR APORTE (USD)"].sum()
+    delta_nac_usd = total_nac - total_nac_ant
+    delta_nac_usd_str = ("\u25b2 " if delta_nac_usd >= 0 else "\u25bc ") + format_usd(abs(delta_nac_usd)) + " vs. 2025"
+    delta_nac_usd_color = "#2E7D32" if delta_nac_usd >= 0 else "#C8102E"
     n1, n2, n3, n4 = st.columns(4)
-    n1.metric("Intervenciones (\u00fanicas)", cic_nacional["CODIGO INTERVENCION"].nunique()
-              if "CODIGO INTERVENCION" in cic_nacional.columns else 0)
+    with n1:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
+            f'<div class="metric-custom-value">{int_nac_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_nac_int_color};">{delta_nac_int_str}</div>'
+            f'<div class="metric-custom-sub">\u2665 {int_nac_nuevas} nuevas &nbsp;|&nbsp; \u21ba {int_nac_activas} contin\u00faan &nbsp;|&nbsp; \u2713 {int_nac_terminadas} terminadas</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
     n2.metric("Cooperantes", cic_nacional["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_nacional.columns else 0)
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
-    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
-    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
-    n4.metric("Total aporte estimado (USD)", total_nac_fmt)
+    with n4:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Total aporte estimado (USD)</div>'
+            f'<div class="metric-custom-value" style="font-size:1.1rem;">{total_nac_fmt}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_nac_usd_color};">{delta_nac_usd_str}</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
     c_n1, c_n2 = st.columns(2)
@@ -1186,8 +1290,14 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_coop_usd, use_container_width=True)
+            top_coop_usd_ant = (cic_ant_nac.groupby("NOMBRE ACTOR")["VALOR APORTE (USD)"]
+                .sum().sort_values(ascending=False).head(10).reset_index())
             top_coop_usd_disp = top_coop_usd.copy()
-            top_coop_usd_disp["VALOR APORTE (USD)"] = top_coop_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_coop_usd_disp.columns = ["NOMBRE ACTOR", "USD 2026"]
+            top_coop_usd_disp["USD 2026"] = top_coop_usd_disp["USD 2026"].apply(format_usd)
+            top_coop_usd_ant.columns = ["NOMBRE ACTOR", "USD 2025"]
+            top_coop_usd_ant["USD 2025"] = top_coop_usd_ant["USD 2025"].apply(format_usd)
+            top_coop_usd_disp = top_coop_usd_disp.merge(top_coop_usd_ant, on="NOMBRE ACTOR", how="left").fillna("-")
             st.dataframe(top_coop_usd_disp, use_container_width=True, hide_index=True)
 
     with c_n2:
@@ -1209,7 +1319,12 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_coop_int, use_container_width=True)
-            st.dataframe(top_coop_int, use_container_width=True, hide_index=True)
+            top_coop_int_ant = (cic_ant_nac.groupby("NOMBRE ACTOR")["CODIGO INTERVENCION"]
+                .nunique().sort_values(ascending=False).head(10).reset_index())
+            top_coop_int_ant.columns = ["NOMBRE ACTOR", "INT. 2025"]
+            top_coop_int_disp = top_coop_int.rename(columns={"INTERVENCIONES": "INT. 2026"})
+            top_coop_int_disp = top_coop_int_disp.merge(top_coop_int_ant, on="NOMBRE ACTOR", how="left").fillna("-")
+            st.dataframe(top_coop_int_disp, use_container_width=True, hide_index=True)
 
     st.markdown('<div class="section-header">ODS y Sectores</div>', unsafe_allow_html=True)
     c_n3, c_n4 = st.columns(2)
@@ -1232,9 +1347,16 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_ods_nac, use_container_width=True)
+            top_ods_nac_ant = (cic_ant_nac.groupby("ODS")["VALOR APORTE (USD)"]
+                .sum().sort_values(ascending=False).head(10).reset_index())
             top_ods_nac_disp = top_ods_nac.copy()
-            top_ods_nac_disp["VALOR APORTE (USD)"] = top_ods_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_ods_nac_disp.columns = ["ODS", "USD 2026"]
             top_ods_nac_disp["ODS"] = top_ods_nac_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+            top_ods_nac_disp["USD 2026"] = top_ods_nac_disp["USD 2026"].apply(format_usd)
+            top_ods_nac_ant.columns = ["ODS", "USD 2025"]
+            top_ods_nac_ant["ODS"] = top_ods_nac_ant["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+            top_ods_nac_ant["USD 2025"] = top_ods_nac_ant["USD 2025"].apply(format_usd)
+            top_ods_nac_disp = top_ods_nac_disp.merge(top_ods_nac_ant, on="ODS", how="left").fillna("-")
             st.dataframe(top_ods_nac_disp, use_container_width=True, hide_index=True)
 
     with c_n4:
@@ -1255,8 +1377,14 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_sect_nac, use_container_width=True)
+            top_sect_nac_ant = (cic_ant_nac.groupby("SECTORES GOB")["VALOR APORTE (USD)"]
+                .sum().sort_values(ascending=False).head(10).reset_index())
             top_sect_nac_disp = top_sect_nac.copy()
-            top_sect_nac_disp["VALOR APORTE (USD)"] = top_sect_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_sect_nac_disp.columns = ["SECTORES GOB", "USD 2026"]
+            top_sect_nac_disp["USD 2026"] = top_sect_nac_disp["USD 2026"].apply(format_usd)
+            top_sect_nac_ant.columns = ["SECTORES GOB", "USD 2025"]
+            top_sect_nac_ant["USD 2025"] = top_sect_nac_ant["USD 2025"].apply(format_usd)
+            top_sect_nac_disp = top_sect_nac_disp.merge(top_sect_nac_ant, on="SECTORES GOB", how="left").fillna("-")
             st.dataframe(top_sect_nac_disp, use_container_width=True, hide_index=True)
 
     st.markdown('<div class="section-header">Departamentos</div>', unsafe_allow_html=True)
@@ -1281,8 +1409,16 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_dept_usd, use_container_width=True)
+            top_dept_usd_ant = (
+                cic_ant_nac[cic_ant_nac["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+                .groupby("DEPARTAMENTO")["VALOR APORTE (USD)"]
+                .sum().sort_values(ascending=False).head(10).reset_index())
             top_dept_usd_disp = top_dept_usd.copy()
-            top_dept_usd_disp["VALOR APORTE (USD)"] = top_dept_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
+            top_dept_usd_disp.columns = ["DEPARTAMENTO", "USD 2026"]
+            top_dept_usd_disp["USD 2026"] = top_dept_usd_disp["USD 2026"].apply(format_usd)
+            top_dept_usd_ant.columns = ["DEPARTAMENTO", "USD 2025"]
+            top_dept_usd_ant["USD 2025"] = top_dept_usd_ant["USD 2025"].apply(format_usd)
+            top_dept_usd_disp = top_dept_usd_disp.merge(top_dept_usd_ant, on="DEPARTAMENTO", how="left").fillna("-")
             st.dataframe(top_dept_usd_disp, use_container_width=True, hide_index=True)
 
     with c_n6:
@@ -1305,7 +1441,14 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_dept_int, use_container_width=True)
-            st.dataframe(top_dept_int, use_container_width=True, hide_index=True)
+            top_dept_int_ant = (
+                cic_ant_nac[cic_ant_nac["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+                .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"]
+                .nunique().sort_values(ascending=False).head(10).reset_index())
+            top_dept_int_ant.columns = ["DEPARTAMENTO", "INT. 2025"]
+            top_dept_int_disp = top_dept_int.rename(columns={"INTERVENCIONES": "INT. 2026"})
+            top_dept_int_disp = top_dept_int_disp.merge(top_dept_int_ant, on="DEPARTAMENTO", how="left").fillna("-")
+            st.dataframe(top_dept_int_disp, use_container_width=True, hide_index=True)
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
@@ -1356,6 +1499,10 @@ with tab4:
         'Desarrollo Sostenible (ODS) y los sectores de gobierno con mayor financiaci\u00f3n, as\u00ed '
         'como los departamentos con mayor presencia de cooperaci\u00f3n internacional. La informaci\u00f3n '
         'incluye tanto las intervenciones de \u00e1mbito territorial como las de \u00e1mbito nacional.</p>'
+        '<p>En algunos indicadores podr\u00e1 ver un comparativo con el trimestre 4 de 2025, '
+        'lo que le permitir\u00e1 identificar cambios en la din\u00e1mica de la cooperaci\u00f3n internacional '
+        'entre per\u00edodos. Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n '
+        'respecto al per\u00edodo anterior.</p>'
         '</div>'
     )
     st.markdown(guia_html, unsafe_allow_html=True)
