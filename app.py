@@ -820,7 +820,7 @@ def to_pdf_proyectos(dept, df_proj):
     story.append(dept_table)
     story.append(Spacer(1, 6))
     story.append(Paragraph(
-        f"Total proyectos: {len(df_proj)} | Fuente: C\u00edclope a corte de 31 de diciembre de 2025",
+        f"Total proyectos: {len(df_proj)} | Fuente: C\u00edclope a corte de 26 de marzo de 2026",
         estilo_caption))
 
     # Tabla de proyectos
