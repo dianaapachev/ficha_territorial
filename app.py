@@ -335,11 +335,11 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "ciclope")
+    ciclope = read_named_table(FILE, "proyectos")  # AOD data desde Ciclope 2025
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "proyectos")
+    proyectos = read_named_table(FILE, "proyectos")  # Listado proyectos tab2
 
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
         for c in df.columns:
