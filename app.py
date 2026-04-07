@@ -335,11 +335,11 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "ciclope")
+    ciclope = read_named_table(FILE, "proyectos")  # AOD data desde Ciclope 2025
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "proyectos")
+    proyectos = read_named_table(FILE, "proyectos")  # Listado proyectos tab2
 
     for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
         for c in df.columns:
@@ -972,22 +972,12 @@ with tab1:
         .nunique()
         if "MUNICIPIO" in cic_dept.columns else 0
     )
-    municipios_count_ant = (
-        cic_dept_ant["MUNICIPIO"].map(norm_text)
-        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
-        .nunique()
-        if "MUNICIPIO" in cic_dept_ant.columns else 0
-    )
-    delta_mun = municipios_count - municipios_count_ant
-    delta_mun_str = ("\u25b2 " if delta_mun >= 0 else "\u25bc ") + str(abs(delta_mun)) + " vs. 2025"
-    delta_mun_color = "#2E7D32" if delta_mun >= 0 else "#C8102E"
     with m3:
         st.markdown(
-            '<div class="metric-custom">'
-            '<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
+            f'<div class="metric-custom">'
+            f'<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
             f'<div class="metric-custom-value">{municipios_count}</div>'
-            f'<div class="metric-custom-delta" style="color:{delta_mun_color};">{delta_mun_str}</div>'
-            '</div>',
+            f'</div>',
             unsafe_allow_html=True
         )
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
@@ -1012,15 +1002,8 @@ with tab1:
                 .properties(height=200)
             )
             st.altair_chart(chart_act, use_container_width=True)
-            # Tabla comparativa 2025 vs 2026
-            top_act_ant = top_by_sum(cic_dept_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
             top_act_disp = top_act.copy()
-            top_act_disp.columns = ["NOMBRE ACTOR", "USD 2026"]
-            top_act_disp["USD 2026"] = top_act_disp["USD 2026"].apply(format_usd)
-            if not top_act_ant.empty:
-                top_act_ant.columns = ["NOMBRE ACTOR", "USD 2025"]
-                top_act_ant["USD 2025"] = top_act_ant["USD 2025"].apply(format_usd)
-                top_act_disp = top_act_disp.merge(top_act_ant, on="NOMBRE ACTOR", how="left").fillna("-")
+            top_act_disp["VALOR APORTE (USD)"] = top_act_disp["VALOR APORTE (USD)"].apply(format_usd)
             st.dataframe(top_act_disp, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos suficientes para cooperantes.")
@@ -1041,18 +1024,9 @@ with tab1:
                 .properties(height=200)
             )
             st.altair_chart(chart_ods, use_container_width=True)
-            # Tabla comparativa 2025 vs 2026
-            top_ods_ant = top_by_sum(cic_dept_ant, "ODS", "VALOR APORTE (USD)", 5)
             top_ods_disp = top_ods.copy()
-            top_ods_disp.columns = ["ODS", "USD 2026"]
+            top_ods_disp["VALOR APORTE (USD)"] = top_ods_disp["VALOR APORTE (USD)"].apply(format_usd)
             top_ods_disp["ODS"] = top_ods_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-            top_ods_disp["USD 2026"] = top_ods_disp["USD 2026"].apply(format_usd)
-            if not top_ods_ant.empty:
-                top_ods_ant_disp = top_ods_ant.copy()
-                top_ods_ant_disp.columns = ["ODS", "USD 2025"]
-                top_ods_ant_disp["ODS"] = top_ods_ant_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-                top_ods_ant_disp["USD 2025"] = top_ods_ant_disp["USD 2025"].apply(format_usd)
-                top_ods_disp = top_ods_disp.merge(top_ods_ant_disp, on="ODS", how="left").fillna("-")
             st.dataframe(top_ods_disp, use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos suficientes para ODS.")
@@ -1211,14 +1185,8 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_coop_usd, use_container_width=True)
-            top_coop_usd_ant = (cic_ant_nac.groupby("NOMBRE ACTOR")["VALOR APORTE (USD)"]
-                .sum().sort_values(ascending=False).head(10).reset_index())
             top_coop_usd_disp = top_coop_usd.copy()
-            top_coop_usd_disp.columns = ["NOMBRE ACTOR", "USD 2026"]
-            top_coop_usd_disp["USD 2026"] = top_coop_usd_disp["USD 2026"].apply(format_usd)
-            top_coop_usd_ant.columns = ["NOMBRE ACTOR", "USD 2025"]
-            top_coop_usd_ant["USD 2025"] = top_coop_usd_ant["USD 2025"].apply(format_usd)
-            top_coop_usd_disp = top_coop_usd_disp.merge(top_coop_usd_ant, on="NOMBRE ACTOR", how="left").fillna("-")
+            top_coop_usd_disp["VALOR APORTE (USD)"] = top_coop_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
             st.dataframe(top_coop_usd_disp, use_container_width=True, hide_index=True)
 
     with c_n2:
@@ -1240,13 +1208,7 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_coop_int, use_container_width=True)
-            top_coop_int_ant = (cic_ant_nac.groupby("NOMBRE ACTOR")["CODIGO INTERVENCION"]
-                .nunique().sort_values(ascending=False).head(10).reset_index())
-            top_coop_int_ant.columns = ["NOMBRE ACTOR", "INT. 2025"]
-            top_coop_int_disp = top_coop_int.copy()
-            top_coop_int_disp.columns = ["NOMBRE ACTOR", "INT. 2026"]
-            top_coop_int_disp = top_coop_int_disp.merge(top_coop_int_ant, on="NOMBRE ACTOR", how="left").fillna("-")
-            st.dataframe(top_coop_int_disp, use_container_width=True, hide_index=True)
+            st.dataframe(top_coop_int, use_container_width=True, hide_index=True)
 
     st.markdown('<div class="section-header">ODS y Sectores</div>', unsafe_allow_html=True)
     c_n3, c_n4 = st.columns(2)
@@ -1269,16 +1231,9 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_ods_nac, use_container_width=True)
-            top_ods_nac_ant = (cic_ant_nac.groupby("ODS")["VALOR APORTE (USD)"]
-                .sum().sort_values(ascending=False).head(10).reset_index())
             top_ods_nac_disp = top_ods_nac.copy()
-            top_ods_nac_disp.columns = ["ODS", "USD 2026"]
+            top_ods_nac_disp["VALOR APORTE (USD)"] = top_ods_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
             top_ods_nac_disp["ODS"] = top_ods_nac_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-            top_ods_nac_disp["USD 2026"] = top_ods_nac_disp["USD 2026"].apply(format_usd)
-            top_ods_nac_ant.columns = ["ODS", "USD 2025"]
-            top_ods_nac_ant["ODS"] = top_ods_nac_ant["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-            top_ods_nac_ant["USD 2025"] = top_ods_nac_ant["USD 2025"].apply(format_usd)
-            top_ods_nac_disp = top_ods_nac_disp.merge(top_ods_nac_ant, on="ODS", how="left").fillna("-")
             st.dataframe(top_ods_nac_disp, use_container_width=True, hide_index=True)
 
     with c_n4:
@@ -1299,14 +1254,8 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_sect_nac, use_container_width=True)
-            top_sect_nac_ant = (cic_ant_nac.groupby("SECTORES GOB")["VALOR APORTE (USD)"]
-                .sum().sort_values(ascending=False).head(10).reset_index())
             top_sect_nac_disp = top_sect_nac.copy()
-            top_sect_nac_disp.columns = ["SECTORES GOB", "USD 2026"]
-            top_sect_nac_disp["USD 2026"] = top_sect_nac_disp["USD 2026"].apply(format_usd)
-            top_sect_nac_ant.columns = ["SECTORES GOB", "USD 2025"]
-            top_sect_nac_ant["USD 2025"] = top_sect_nac_ant["USD 2025"].apply(format_usd)
-            top_sect_nac_disp = top_sect_nac_disp.merge(top_sect_nac_ant, on="SECTORES GOB", how="left").fillna("-")
+            top_sect_nac_disp["VALOR APORTE (USD)"] = top_sect_nac_disp["VALOR APORTE (USD)"].apply(format_usd)
             st.dataframe(top_sect_nac_disp, use_container_width=True, hide_index=True)
 
     st.markdown('<div class="section-header">Departamentos</div>', unsafe_allow_html=True)
@@ -1331,16 +1280,8 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_dept_usd, use_container_width=True)
-            top_dept_usd_ant = (
-                cic_ant_nac[cic_ant_nac["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
-                .groupby("DEPARTAMENTO")["VALOR APORTE (USD)"]
-                .sum().sort_values(ascending=False).head(10).reset_index())
             top_dept_usd_disp = top_dept_usd.copy()
-            top_dept_usd_disp.columns = ["DEPARTAMENTO", "USD 2026"]
-            top_dept_usd_disp["USD 2026"] = top_dept_usd_disp["USD 2026"].apply(format_usd)
-            top_dept_usd_ant.columns = ["DEPARTAMENTO", "USD 2025"]
-            top_dept_usd_ant["USD 2025"] = top_dept_usd_ant["USD 2025"].apply(format_usd)
-            top_dept_usd_disp = top_dept_usd_disp.merge(top_dept_usd_ant, on="DEPARTAMENTO", how="left").fillna("-")
+            top_dept_usd_disp["VALOR APORTE (USD)"] = top_dept_usd_disp["VALOR APORTE (USD)"].apply(format_usd)
             st.dataframe(top_dept_usd_disp, use_container_width=True, hide_index=True)
 
     with c_n6:
@@ -1363,15 +1304,7 @@ with tab3:
                 .properties(height=280)
             )
             st.altair_chart(chart_dept_int, use_container_width=True)
-            top_dept_int_ant = (
-                cic_ant_nac[cic_ant_nac["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
-                .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"]
-                .nunique().sort_values(ascending=False).head(10).reset_index())
-            top_dept_int_ant.columns = ["DEPARTAMENTO", "INT. 2025"]
-            top_dept_int_disp = top_dept_int.copy()
-            top_dept_int_disp.columns = ["DEPARTAMENTO", "INT. 2026"]
-            top_dept_int_disp = top_dept_int_disp.merge(top_dept_int_ant, on="DEPARTAMENTO", how="left").fillna("-")
-            st.dataframe(top_dept_int_disp, use_container_width=True, hide_index=True)
+            st.dataframe(top_dept_int, use_container_width=True, hide_index=True)
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
@@ -1422,10 +1355,6 @@ with tab4:
         'Desarrollo Sostenible (ODS) y los sectores de gobierno con mayor financiaci\u00f3n, as\u00ed '
         'como los departamentos con mayor presencia de cooperaci\u00f3n internacional. La informaci\u00f3n '
         'incluye tanto las intervenciones de \u00e1mbito territorial como las de \u00e1mbito nacional.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver un comparativo con el trimestre 4 de 2025, '
-        'lo que le permitir\u00e1 identificar cambios en la din\u00e1mica de la cooperaci\u00f3n internacional '
-        'entre per\u00edodos. Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n '
-        'respecto al per\u00edodo anterior.</p>'
         '</div>'
     )
     st.markdown(guia_html, unsafe_allow_html=True)
