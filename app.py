@@ -1165,7 +1165,12 @@ with tab2:
             df = df[mask]
 
     df = df.drop(columns=["DEPT_NORM"], errors="ignore")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    COLS_SHOW = [
+        "NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
+        "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"
+    ]
+    cols_show = [c for c in COLS_SHOW if c in df.columns]
+    st.dataframe(df[cols_show], use_container_width=True, hide_index=True)
 
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
