@@ -263,6 +263,19 @@ div[data-testid="stMetricLabel"] p {
     color: #003087;
     line-height: 1.2;
 }
+.metric-custom-delta {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+.metric-custom-sub {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.72rem;
+    color: #5A6A85;
+    margin-top: 2px;
+    line-height: 1.4;
+}
 
 /* Ocultar barra Streamlit */
 div[data-testid="stToolbar"],
@@ -335,13 +348,14 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "ciclope2025")
+    ciclope = read_named_table(FILE, "ciclope20261")
+    ciclope_ant = read_named_table(FILE, "ciclope2025")  # Comparativo a\u00f1o anterior
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "ciclope2025")
+    proyectos = read_named_table(FILE, "ciclope20261")
 
-    for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
+    for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
             if df[c].dtype == "object":
                 df[c] = df[c].astype(str).str.strip()
@@ -350,8 +364,12 @@ def load_data():
         ciclope["VALOR APORTE (USD)"] = pd.to_numeric(
             ciclope["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
+    if "VALOR APORTE (USD)" in ciclope_ant.columns:
+        ciclope_ant["VALOR APORTE (USD)"] = pd.to_numeric(
+            ciclope_ant["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
 
-    return infogeneral, plan, ciclope, colcol, contrapartidas, proyectos
+    return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos
 
 
 def top_by_sum(df, group_col, value_col, n=5):
@@ -868,7 +886,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-infogeneral, plan, ciclope, colcol, contrapartidas, proyectos = load_data()
+infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos = load_data()
 
 DEPT_COL_INFO = "Departamento"
 depts = sorted(infogeneral[DEPT_COL_INFO].dropna().unique().tolist())
@@ -880,9 +898,11 @@ infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
 info = infogeneral[infogeneral["DEPT_NORM"] == dept_norm].head(1)
 
 ciclope["DEPT_NORM"] = ciclope["DEPARTAMENTO"].map(norm_text)
+ciclope_ant["DEPT_NORM"] = ciclope_ant["DEPARTAMENTO"].map(norm_text)
 proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 
 cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
+cic_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
 
 mask_colcol = pd.Series(False, index=colcol.index)
@@ -960,9 +980,29 @@ with tab1:
     )
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Intervenciones (unicas)",
-              cic_dept["CODIGO INTERVENCION"].nunique()
-              if "CODIGO INTERVENCION" in cic_dept.columns else 0)
+
+    # Comparativos intervenciones
+    int_26 = cic_dept["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept.columns else 0
+    int_25 = cic_dept_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept_ant.columns else 0
+    cod_26 = set(cic_dept["CODIGO INTERVENCION"].dropna().unique())
+    cod_25 = set(cic_dept_ant["CODIGO INTERVENCION"].dropna().unique())
+    int_nuevas = len(cod_26 - cod_25)
+    int_activas = len(cod_26 & cod_25)
+    int_terminadas = len(cod_25 - cod_26)
+    delta_int = int_26 - int_25
+    delta_int_str = f'{"\u25b2" if delta_int >= 0 else "\u25bc"} {abs(delta_int)} vs. 2025'
+    delta_int_color = "#2E7D32" if delta_int >= 0 else "#C8102E"
+    with m1:
+        st.markdown(
+            f'<div class="metric-custom">'
+            f'<div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
+            f'<div class="metric-custom-value">{int_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_int_color};">{delta_int_str}</div>'
+            f'<div class="metric-custom-sub">\u2665 {int_nuevas} nuevas &nbsp;|&nbsp; \u21ba {int_activas} contin\u00faan &nbsp;|&nbsp; \u2713 {int_terminadas} terminadas</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
     m2.metric("Cooperantes",
               cic_dept["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_dept.columns else 0)
@@ -980,9 +1020,20 @@ with tab1:
             f'</div>',
             unsafe_allow_html=True
         )
-    total_usd = cic_dept["VALOR APORTE (USD)"].sum() \
-        if "VALOR APORTE (USD)" in cic_dept.columns else 0
-    m4.metric("Total aporte estimado (USD)", format_usd(total_usd))
+    total_usd = cic_dept["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept.columns else 0
+    total_usd_ant = cic_dept_ant["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept_ant.columns else 0
+    delta_usd = total_usd - total_usd_ant
+    delta_usd_str = f'{"\u25b2" if delta_usd >= 0 else "\u25bc"} {format_usd(abs(delta_usd))} vs. 2025'
+    delta_usd_color = "#2E7D32" if delta_usd >= 0 else "#C8102E"
+    with m4:
+        st.markdown(
+            f'<div class="metric-custom">'
+            f'<div class="metric-custom-label">Total aporte estimado (USD)</div>'
+            f'<div class="metric-custom-value" style="font-size:1.1rem;">{format_usd(total_usd)}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_usd_color};">{delta_usd_str}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
     c5, c6 = st.columns(2)
 
@@ -1092,7 +1143,7 @@ with tab2:
         f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
 
     search = st.text_input("Buscar en proyectos").strip()
     df = proj_dept.copy()
@@ -1110,12 +1161,7 @@ with tab2:
             df = df[mask]
 
     df = df.drop(columns=["DEPT_NORM"], errors="ignore")
-    COLS_SHOW = [
-        "NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
-        "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"
-    ]
-    cols_available = [c for c in COLS_SHOW if c in df.columns]
-    st.dataframe(df[cols_available], use_container_width=True, hide_index=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
@@ -1151,23 +1197,55 @@ with tab3:
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 31 de diciembre de 2025. Incluye \u00e1mbito nacional y territorial.")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026. Incluye \u00e1mbito nacional y territorial.")
 
     # Calcular datos nacionales
     cic_nacional = ciclope.copy()
     cic_nacional["VALOR APORTE (USD)"] = pd.to_numeric(cic_nacional["VALOR APORTE (USD)"], errors="coerce").fillna(0)
 
+    cic_ant_nac = ciclope_ant.copy()
+    cic_ant_nac["VALOR APORTE (USD)"] = pd.to_numeric(cic_ant_nac["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+    int_nac_26 = cic_nacional["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_nacional.columns else 0
+    int_nac_25 = cic_ant_nac["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_ant_nac.columns else 0
+    cod_nac_26 = set(cic_nacional["CODIGO INTERVENCION"].dropna().unique())
+    cod_nac_25 = set(cic_ant_nac["CODIGO INTERVENCION"].dropna().unique())
+    int_nac_nuevas = len(cod_nac_26 - cod_nac_25)
+    int_nac_activas = len(cod_nac_26 & cod_nac_25)
+    int_nac_terminadas = len(cod_nac_25 - cod_nac_26)
+    delta_nac_int = int_nac_26 - int_nac_25
+    delta_nac_int_str = ("\u25b2 " if delta_nac_int >= 0 else "\u25bc ") + str(abs(delta_nac_int)) + " vs. 2025"
+    delta_nac_int_color = "#2E7D32" if delta_nac_int >= 0 else "#C8102E"
+    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
+    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
+    total_nac_ant = cic_ant_nac["VALOR APORTE (USD)"].sum()
+    delta_nac_usd = total_nac - total_nac_ant
+    delta_nac_usd_str = ("\u25b2 " if delta_nac_usd >= 0 else "\u25bc ") + format_usd(abs(delta_nac_usd)) + " vs. 2025"
+    delta_nac_usd_color = "#2E7D32" if delta_nac_usd >= 0 else "#C8102E"
     n1, n2, n3, n4 = st.columns(4)
-    n1.metric("Intervenciones (\u00fanicas)", cic_nacional["CODIGO INTERVENCION"].nunique()
-              if "CODIGO INTERVENCION" in cic_nacional.columns else 0)
+    with n1:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
+            f'<div class="metric-custom-value">{int_nac_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_nac_int_color};">{delta_nac_int_str}</div>'
+            f'<div class="metric-custom-sub">\u2665 {int_nac_nuevas} nuevas &nbsp;|&nbsp; \u21ba {int_nac_activas} contin\u00faan &nbsp;|&nbsp; \u2713 {int_nac_terminadas} terminadas</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
     n2.metric("Cooperantes", cic_nacional["NOMBRE ACTOR"].nunique()
               if "NOMBRE ACTOR" in cic_nacional.columns else 0)
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
-    total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
-    total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
-    n4.metric("Total aporte estimado (USD)", total_nac_fmt)
+    with n4:
+        st.markdown(
+            '<div class="metric-custom">'
+            '<div class="metric-custom-label">Total aporte estimado (USD)</div>'
+            f'<div class="metric-custom-value" style="font-size:1.1rem;">{total_nac_fmt}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_nac_usd_color};">{delta_nac_usd_str}</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     st.markdown('<div class="section-header">Cooperantes</div>', unsafe_allow_html=True)
     c_n1, c_n2 = st.columns(2)
