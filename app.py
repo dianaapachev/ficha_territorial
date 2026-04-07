@@ -335,13 +335,14 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "proyectos")  # AOD data desde Ciclope 2025
+    ciclope = read_named_table(FILE, "ciclope20261")
+    ciclope_ant = read_named_table(FILE, "ciclope2025")
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
     proyectos = read_named_table(FILE, "proyectos")  # Listado proyectos tab2
 
-    for df in [infogeneral, plan, ciclope, colcol, contrapartidas, proyectos]:
+    for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
             if df[c].dtype == "object":
                 df[c] = df[c].astype(str).str.strip()
@@ -351,7 +352,7 @@ def load_data():
             ciclope["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
 
-    return infogeneral, plan, ciclope, colcol, contrapartidas, proyectos
+    return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos
 
 
 def top_by_sum(df, group_col, value_col, n=5):
@@ -868,7 +869,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-infogeneral, plan, ciclope, colcol, contrapartidas, proyectos = load_data()
+infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos = load_data()
 
 DEPT_COL_INFO = "Departamento"
 depts = sorted(infogeneral[DEPT_COL_INFO].dropna().unique().tolist())
