@@ -350,6 +350,14 @@ def load_data():
     plan = read_named_table(FILE, "plan")
     ciclope = read_named_table(FILE, "ciclope20261")
     ciclope_ant = read_named_table(FILE, "ciclope2025")
+    # CSS - leer directamente desde la hoja (no es tabla nombrada)
+    wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
+    ws_css = wb_css["CSS"]
+    css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
+    css = pd.DataFrame(css_data[1:], columns=css_data[0])
+    for c in css.columns:
+        if css[c].dtype == "object":
+            css[c] = css[c].astype(str).str.strip()
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
@@ -365,7 +373,7 @@ def load_data():
             ciclope["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
 
-    return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos
+    return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css
 
 
 def top_by_sum(df, group_col, value_col, n=5):
@@ -882,7 +890,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos = load_data()
+infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css = load_data()
 
 DEPT_COL_INFO = "Departamento"
 depts = sorted(infogeneral[DEPT_COL_INFO].dropna().unique().tolist())
@@ -900,6 +908,7 @@ proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
 cic_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
 proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
+css_dept = css[css["ESPACIO VINCULADO"].map(norm_text) == dept_norm]
 
 mask_colcol = pd.Series(False, index=colcol.index)
 if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
@@ -1111,6 +1120,75 @@ with tab1:
             if str(col).strip().strip("\'") in ["Monto por APC", "Monto total", "Monto total "]:
                 contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
         st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
+
+    # ---- CSS ----
+    st.markdown('<div class="section-header">Proyectos de Cooperaci\u00f3n Sur Sur aprobados y vigentes</div>',
+                unsafe_allow_html=True)
+    st.caption("Datos actualizados a abril de 2026 \u00b7 APC Colombia, Direcci\u00f3n de Oferta")
+
+    if css_dept.empty:
+        st.info("No se encontraron proyectos de Cooperaci\u00f3n Sur Sur para este departamento.")
+    else:
+        st.metric("Proyectos CSS encontrados", len(css_dept))
+
+        # Gr\u00e1ficas resumen
+        g1, g2, g3 = st.columns(3)
+
+        with g1:
+            st.markdown("**V\u00eda de cooperaci\u00f3n**")
+            via_count = css_dept["VIA DE COOPERACION"].value_counts().reset_index()
+            via_count.columns = ["V\u00eda", "Proyectos"]
+            chart_via = (
+                alt.Chart(via_count)
+                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("V\u00eda:N", sort="-x", title=""),
+                    x=alt.X("Proyectos:Q", title="Proyectos"),
+                    tooltip=["V\u00eda:N", "Proyectos:Q"]
+                ).properties(height=130)
+            )
+            st.altair_chart(chart_via, use_container_width=True)
+
+        with g2:
+            st.markdown("**Regi\u00f3n del pa\u00eds socio**")
+            reg_count = css_dept["REGION"].value_counts().reset_index()
+            reg_count.columns = ["Regi\u00f3n", "Proyectos"]
+            chart_reg = (
+                alt.Chart(reg_count)
+                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("Regi\u00f3n:N", sort="-x", title=""),
+                    x=alt.X("Proyectos:Q", title="Proyectos"),
+                    tooltip=["Regi\u00f3n:N", "Proyectos:Q"]
+                ).properties(height=130)
+            )
+            st.altair_chart(chart_reg, use_container_width=True)
+
+        with g3:
+            st.markdown("**Pa\u00eds socio**")
+            pais_count = css_dept["PAIS SOCIO"].value_counts().head(8).reset_index()
+            pais_count.columns = ["Pa\u00eds", "Proyectos"]
+            chart_pais = (
+                alt.Chart(pais_count)
+                .mark_bar(color="#C8102E", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                .encode(
+                    y=alt.Y("Pa\u00eds:N", sort="-x", title=""),
+                    x=alt.X("Proyectos:Q", title="Proyectos"),
+                    tooltip=["Pa\u00eds:N", "Proyectos:Q"]
+                ).properties(height=130)
+            )
+            st.altair_chart(chart_pais, use_container_width=True)
+
+        # Tabla completa sin columnas L (ENTIDAD NACIONAL) y N (ESPACIO VINCULADO)
+        COLS_CSS = [
+            "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO", "SEGUNDO OFERENTE",
+            "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "FECHA DE APROBACION",
+            "OBJETIVO GENERAL/DESCRIPCION DE LA INICIATIVA", "ESTADO",
+            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD(ES) EXTRANJERA(S)"
+        ]
+        cols_css_show = [c for c in COLS_CSS if c in css_dept.columns]
+        css_disp = css_dept[cols_css_show].copy()
+        st.dataframe(css_disp, use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
