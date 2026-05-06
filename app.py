@@ -350,7 +350,6 @@ def load_data():
     plan = read_named_table(FILE, "plan")
     ciclope = read_named_table(FILE, "ciclope20261")
     ciclope_ant = read_named_table(FILE, "ciclope2025")
-    # CSS - leer directamente desde la hoja (no es tabla nombrada)
     wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
     ws_css = wb_css["CSS"]
     css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
@@ -1121,7 +1120,7 @@ with tab1:
                 contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
         st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
 
-    # ---- CSS ----
+    # ---- Cooperaci\u00f3n Sur-Sur ----
     st.markdown('<div class="section-header">Proyectos de Cooperaci\u00f3n Sur Sur aprobados y vigentes</div>',
                 unsafe_allow_html=True)
     st.caption("Datos actualizados a abril de 2026 \u00b7 APC Colombia, Direcci\u00f3n de Oferta")
@@ -1129,62 +1128,14 @@ with tab1:
     if css_dept.empty:
         st.info("No se encontraron proyectos de Cooperaci\u00f3n Sur Sur para este departamento.")
     else:
-        st.metric("Proyectos CSS encontrados", len(css_dept))
+        proyectos_css_unicos = css_dept["C\u00f3digo"].nunique() if "C\u00f3digo" in css_dept.columns else len(css_dept)
+        st.metric("Proyectos CSS \u00fanicos", proyectos_css_unicos)
 
-        # Gr\u00e1ficas resumen
-        g1, g2, g3 = st.columns(3)
-
-        with g1:
-            st.markdown("**V\u00eda de cooperaci\u00f3n**")
-            via_count = css_dept["VIA DE COOPERACION"].value_counts().reset_index()
-            via_count.columns = ["V\u00eda", "Proyectos"]
-            chart_via = (
-                alt.Chart(via_count)
-                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
-                .encode(
-                    y=alt.Y("V\u00eda:N", sort="-x", title=""),
-                    x=alt.X("Proyectos:Q", title="Proyectos"),
-                    tooltip=["V\u00eda:N", "Proyectos:Q"]
-                ).properties(height=130)
-            )
-            st.altair_chart(chart_via, use_container_width=True)
-
-        with g2:
-            st.markdown("**Regi\u00f3n del pa\u00eds socio**")
-            reg_count = css_dept["REGION"].value_counts().reset_index()
-            reg_count.columns = ["Regi\u00f3n", "Proyectos"]
-            chart_reg = (
-                alt.Chart(reg_count)
-                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
-                .encode(
-                    y=alt.Y("Regi\u00f3n:N", sort="-x", title=""),
-                    x=alt.X("Proyectos:Q", title="Proyectos"),
-                    tooltip=["Regi\u00f3n:N", "Proyectos:Q"]
-                ).properties(height=130)
-            )
-            st.altair_chart(chart_reg, use_container_width=True)
-
-        with g3:
-            st.markdown("**Pa\u00eds socio**")
-            pais_count = css_dept["PAIS SOCIO"].value_counts().head(8).reset_index()
-            pais_count.columns = ["Pa\u00eds", "Proyectos"]
-            chart_pais = (
-                alt.Chart(pais_count)
-                .mark_bar(color="#C8102E", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
-                .encode(
-                    y=alt.Y("Pa\u00eds:N", sort="-x", title=""),
-                    x=alt.X("Proyectos:Q", title="Proyectos"),
-                    tooltip=["Pa\u00eds:N", "Proyectos:Q"]
-                ).properties(height=130)
-            )
-            st.altair_chart(chart_pais, use_container_width=True)
-
-        # Tabla completa sin columnas L (ENTIDAD NACIONAL) y N (ESPACIO VINCULADO)
         COLS_CSS = [
             "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO", "SEGUNDO OFERENTE",
             "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "FECHA DE APROBACION",
             "OBJETIVO GENERAL/DESCRIPCION DE LA INICIATIVA", "ESTADO",
-            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD(ES) EXTRANJERA(S)"
+            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD NACIONAL", "ENTIDAD(ES) EXTRANJERA(S)"
         ]
         cols_css_show = [c for c in COLS_CSS if c in css_dept.columns]
         css_disp = css_dept[cols_css_show].copy()
