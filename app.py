@@ -1176,7 +1176,7 @@ with tab1:
             "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO", "SEGUNDO OFERENTE",
             "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "FECHA DE APROBACION",
             "OBJETIVO GENERAL/DESCRIPCION DE LA INICIATIVA", "ESTADO",
-            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD NACIONAL", "ENTIDAD(ES) EXTRANJERA(S)"
+            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD(ES) EXTRANJERA(S)"
         ]
         cols_css_show = [c for c in COLS_CSS if c in css_dept.columns]
         css_disp = css_dept[cols_css_show].copy()
