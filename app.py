@@ -408,7 +408,7 @@ ODS_NOMBRES = {
     "ODS 17": "ODS 17 - Alianzas para lograr los objetivos",
 }
 
-def to_excel_ficha(info_row, cic_dept, colcol_dept, contr_dept):
+def to_excel_ficha(info_row, cic_dept, colcol_dept, contr_dept, css_dept=None):
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         if not info_row.empty:
@@ -424,6 +424,15 @@ def to_excel_ficha(info_row, cic_dept, colcol_dept, contr_dept):
         cic_export.to_excel(writer, sheet_name="AOD - Ciclope", index=False)
         colcol_dept.copy().to_excel(writer, sheet_name="ColCol", index=False)
         contr_dept.to_excel(writer, sheet_name="Contrapartidas", index=False)
+        if css_dept is not None and not css_dept.empty:
+            COLS_CSS = [
+                "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO", "SEGUNDO OFERENTE",
+                "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "FECHA DE APROBACION",
+                "OBJETIVO GENERAL/DESCRIPCION DE LA INICIATIVA", "ESTADO",
+                "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD(ES) EXTRANJERA(S)"
+            ]
+            cols_css = [c for c in COLS_CSS if c in css_dept.columns]
+            css_dept[cols_css].to_excel(writer, sheet_name="Coop Sur Sur", index=False)
     output.seek(0)
     return output.getvalue()
 
@@ -437,7 +446,7 @@ def to_excel_proyectos(df_proj):
 
 
 
-def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
+def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept, css_dept=None):
     output = BytesIO()
     doc = SimpleDocTemplate(
         output, pagesize=A4,
@@ -757,6 +766,38 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept):
         story.append(t_ct)
     else:
         story.append(Paragraph("Sin registros para este departamento.", estilo_normal))
+
+    # --- COOPERACION SUR-SUR ---
+    if css_dept is not None and not css_dept.empty:
+        story.append(Spacer(1, 10))
+        story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+        story.append(Paragraph("Proyectos de Cooperaci\u00f3n Sur Sur aprobados y vigentes", estilo_seccion))
+        story.append(Paragraph(
+            f"Datos actualizados a abril de 2026 \u00b7 {len(css_dept)} proyecto(s)",
+            estilo_caption))
+        COLS_CSS_PDF = [
+            "C\u00f3digo", "VIA DE COOPERACION", "PAIS SOCIO", "REGION",
+            "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "ESTADO",
+            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD NACIONAL"
+        ]
+        cols_css_pdf = [c for c in COLS_CSS_PDF if c in css_dept.columns]
+        css_show = css_dept[cols_css_pdf].head(30)
+        css_data_pdf = [[Paragraph(str(c), estilo_label) for c in css_show.columns]]
+        for _, r in css_show.iterrows():
+            css_data_pdf.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
+        n_css = len(css_show.columns)
+        col_w_css = 100 / n_css
+        t_css = Table(css_data_pdf, colWidths=[f"{col_w_css}%" for _ in range(n_css)])
+        t_css.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("FONTSIZE", (0,0), (-1,-1), 7),
+        ]))
+        story.append(t_css)
 
     # Footer
     story.append(Spacer(1, 16))
@@ -1143,7 +1184,7 @@ with tab1:
 
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
-    excel_ficha = to_excel_ficha(info, cic_dept, colcol_dept, contr_dept)
+    excel_ficha = to_excel_ficha(info, cic_dept, colcol_dept, contr_dept, css_dept)
     col_pdf, col_xlsx = st.columns(2)
     with col_xlsx:
         st.download_button(
@@ -1153,7 +1194,7 @@ with tab1:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     with col_pdf:
-        pdf_ficha = to_pdf_ficha(dept, info, cic_dept, colcol_dept, contr_dept)
+        pdf_ficha = to_pdf_ficha(dept, info, cic_dept, colcol_dept, contr_dept, css_dept)
         st.download_button(
             label="Descargar Ficha Territorial (PDF)",
             data=pdf_ficha,
