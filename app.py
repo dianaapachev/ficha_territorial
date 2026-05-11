@@ -24,7 +24,7 @@ st.set_page_config(
 
 FILE = "Ficha_territorial.xlsm"
 FILE_SECTORES = "Ficha sectores.xlsx"
-GEO_FILE = "Colombia.geo.json"
+GEO_FILE = "Colombia.geo"
 LOGO_APC = "logo_apc.png"
 LOGO_SNCIC = "logo_sncic.png"
 
