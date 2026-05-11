@@ -6,6 +6,8 @@ from openpyxl.utils.cell import range_boundaries
 import unicodedata
 import re
 import altair as alt
+import plotly.express as px
+import json
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -14,9 +16,18 @@ from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
-# -----------------------------------------------
-# Estilos APC Colombia
-# -----------------------------------------------
+st.set_page_config(
+    page_title="Ficha de Cooperaci\u00f3n Internacional | APC Colombia",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+FILE = "Ficha_territorial.xlsm"
+FILE_SECTORES = "Ficha sectores.xlsx"
+GEO_FILE = "Colombia_geo.json"
+LOGO_APC = "logo_apc.png"
+LOGO_SNCIC = "logo_sncic.png"
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600&display=swap');
@@ -283,11 +294,109 @@ div[data-testid="stDecoration"],
 header[data-testid="stHeader"] {
     display: none !important;
 }
+
+/* \u2500\u2500 Logo header \u2500\u2500 */
+.app-header {
+    background: #003087;
+    padding: 0.7rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 4px solid #C8102E;
+    margin-bottom: 0;
+}
+.app-header-center {
+    text-align: center;
+    flex: 1;
+    padding: 0 1rem;
+}
+.app-header-title {
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.3px;
+}
+.app-header-sub {
+    color: rgba(255,255,255,0.72);
+    font-size: 0.75rem;
+    margin-top: 2px;
+    font-family: 'Source Sans 3', sans-serif;
+}
+.logo-side {
+    width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* \u2500\u2500 Panel general cards \u2500\u2500 */
+.panel-stat {
+    background: white;
+    border: 1px solid #D1D9E6;
+    border-left: 5px solid #003087;
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0,48,135,0.06);
+}
+.panel-stat-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #5A6A85;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+}
+.panel-stat-value {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #003087;
+    line-height: 1.1;
+}
+.panel-stat-sub {
+    font-size: 0.72rem;
+    color: #5A6A85;
+    margin-top: 3px;
+}
+.panel-stat-red { border-left-color: #C8102E; }
+.panel-stat-yellow { border-left-color: #F5A623; }
+
+/* \u2500\u2500 Section divider with icon \u2500\u2500 */
+.section-title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #003087;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 3px solid #F5A623;
+    padding-bottom: 6px;
+    margin: 1.8rem 0 1rem 0;
+}
+
+/* \u2500\u2500 Selector pill \u2500\u2500 */
+div[data-testid="stSelectbox"] > div > div {
+    border-radius: 6px !important;
+    border-color: #D1D9E6 !important;
+}
+
+/* \u2500\u2500 Map container \u2500\u2500 */
+.map-title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #5A6A85;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
 </style>
 """, unsafe_allow_html=True)
-
-FILE = "Ficha_territorial.xlsm"
-
 
 def norm_text(x):
     if x is None:
@@ -322,6 +431,7 @@ def get_col(row, *names):
         if val is not None and str(val).strip() not in ("", "None", "nan"):
             return val
     return ""
+
 
 
 @st.cache_data
@@ -360,7 +470,7 @@ def load_data():
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "ciclope20261")  # Listado proyectos tab2
+    proyectos = read_named_table(FILE, "ciclope20261")
 
     for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
@@ -371,8 +481,110 @@ def load_data():
         ciclope["VALOR APORTE (USD)"] = pd.to_numeric(
             ciclope["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
+    if "VALOR APORTE (USD)" in ciclope_ant.columns:
+        ciclope_ant["VALOR APORTE (USD)"] = pd.to_numeric(
+            ciclope_ant["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
 
     return infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css
+
+
+@st.cache_data
+def load_sectores():
+    """Carga los datos de la ficha sectorial."""
+    info_s = pd.read_excel(FILE_SECTORES, sheet_name="INFO GENERAL")
+    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD22026")
+    css_s = pd.read_excel(FILE_SECTORES, sheet_name="CSS22026")
+    colcol_s = pd.read_excel(FILE_SECTORES, sheet_name="COLCOL")
+
+    for df in [info_s, aod_s, css_s, colcol_s]:
+        for c in df.columns:
+            if df[c].dtype == "object":
+                df[c] = df[c].astype(str).str.strip()
+
+    if "VALOR APORTE (USD)" in aod_s.columns:
+        aod_s["VALOR APORTE (USD)"] = pd.to_numeric(
+            aod_s["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
+
+    return info_s, aod_s, css_s, colcol_s
+
+
+@st.cache_data
+def load_geo():
+    with open(GEO_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def make_map(geo, dept_values, selected_dept=None):
+    """Genera mapa coropl\u00e9tico interactivo de Colombia."""
+    names = [f["properties"]["NOMBRE_DPT"] for f in geo["features"]]
+    df_map = pd.DataFrame({"dept_geo": names})
+    df_map["value"] = df_map["dept_geo"].map(
+        lambda x: dept_values.get(norm_text(x), 0)
+    )
+    df_map["selected"] = df_map["dept_geo"].map(
+        lambda x: 1 if selected_dept and norm_text(x) == norm_text(selected_dept) else 0
+    )
+
+    fig = px.choropleth(
+        df_map,
+        geojson=geo,
+        locations="dept_geo",
+        featureidkey="properties.NOMBRE_DPT",
+        color="value",
+        color_continuous_scale=[
+            [0, "#EEF3FB"],
+            [0.2, "#A8C4E8"],
+            [0.5, "#4A90D9"],
+            [0.8, "#1565C0"],
+            [1.0, "#003087"]
+        ],
+        hover_name="dept_geo",
+        hover_data={"value": ":,.0f", "selected": False, "dept_geo": False},
+        labels={"value": "Intervenciones"},
+    )
+    fig.update_geos(
+        fitbounds="locations",
+        visible=False,
+        bgcolor="rgba(0,0,0,0)"
+    )
+    fig.update_layout(
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        coloraxis_colorbar=dict(
+            title="Intervenciones",
+            thickness=12,
+            len=0.6,
+            tickfont=dict(size=9),
+            titlefont=dict(size=9)
+        ),
+        height=480,
+    )
+
+    # Highlight selected dept
+    if selected_dept:
+        selected_features = [
+            f for f in geo["features"]
+            if norm_text(f["properties"]["NOMBRE_DPT"]) == norm_text(selected_dept)
+        ]
+        if selected_features:
+            import plotly.graph_objects as go
+            sel_geo = {"type": "FeatureCollection", "features": selected_features}
+            fig.add_trace(go.Choropleth(
+                geojson=sel_geo,
+                locations=[selected_features[0]["properties"]["NOMBRE_DPT"]],
+                z=[1],
+                featureidkey="properties.NOMBRE_DPT",
+                colorscale=[[0, "#C8102E"], [1, "#C8102E"]],
+                showscale=False,
+                marker_line_color="white",
+                marker_line_width=2,
+                hoverinfo="skip"
+            ))
+
+    return fig
 
 
 def top_by_sum(df, group_col, value_col, n=5):
@@ -407,6 +619,8 @@ ODS_NOMBRES = {
     "ODS 16": "ODS 16 - Paz, justicia e instituciones s\u00f3lidas",
     "ODS 17": "ODS 17 - Alianzas para lograr los objetivos",
 }
+
+
 
 def to_excel_ficha(info_row, cic_dept, colcol_dept, contr_dept, css_dept=None):
     output = BytesIO()
@@ -918,305 +1132,192 @@ def to_pdf_proyectos(dept, df_proj):
 # -------------------------
 # APP
 # -------------------------
-st.set_page_config(page_title="Ficha Territorial | APC Colombia", layout="wide")
 
-# Header institucional
-st.markdown("""
-<div class="apc-header">
-    <div>
-        <div class="apc-header-title">Ficha Territorial</div>
-        <div class="apc-header-subtitle">Herramienta de caracterizaci\u00f3n territorial para la gesti\u00f3n de la cooperaci\u00f3n internacional</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
+# Load data
 infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css = load_data()
+info_s, aod_s, css_s, colcol_s = load_sectores()
+geo = load_geo()
+
+# \u2500\u2500 HEADER WITH LOGOS \u2500\u2500
+col_logo_l, col_title, col_logo_r = st.columns([1, 4, 1])
+with col_logo_l:
+    try:
+        st.image(LOGO_APC, width=120)
+    except:
+        st.markdown('<div style="color:white;font-weight:700;font-size:1rem;">APC</div>', unsafe_allow_html=True)
+with col_title:
+    st.markdown("""
+    <div style="text-align:center; padding: 0.5rem 0;">
+        <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:1.2rem;color:#003087;">
+            Herramienta de Caracterizaci\u00f3n Territorial para la Gesti\u00f3n de la Cooperaci\u00f3n Internacional
+        </div>
+        <div style="font-size:0.8rem;color:#5A6A85;margin-top:3px;">
+            Sistema Nacional de Cooperaci\u00f3n Internacional \u00b7 APC-Colombia
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+with col_logo_r:
+    try:
+        st.image(LOGO_SNCIC, width=110)
+    except:
+        st.markdown('<div style="color:#003087;font-weight:700;">SNCIC</div>', unsafe_allow_html=True)
+
+st.markdown('<div style="height:4px;background:linear-gradient(90deg,#F5A623 33%,#003087 33% 66%,#C8102E 66%);margin-bottom:1.5rem;"></div>', unsafe_allow_html=True)
+
+# \u2500\u2500 MAIN NAVIGATION \u2500\u2500
+nav_options = ["\U0001f4ca Panel General", "\U0001f5fa\ufe0f Ficha Territorial", "\U0001f3db\ufe0f Ficha Sectorial", "\U0001f310 Panorama Nacional", "\U0001f4d6 Gu\u00eda de usuario"]
+nav = st.radio("", nav_options, horizontal=True, label_visibility="collapsed",
+               key="main_nav")
+
+st.markdown("---")
+
 
 DEPT_COL_INFO = "Departamento"
 depts = sorted(infogeneral[DEPT_COL_INFO].dropna().unique().tolist())
 
-dept = st.selectbox("Selecciona un departamento", depts)
-
-dept_norm = norm_text(dept)
-infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
-info = infogeneral[infogeneral["DEPT_NORM"] == dept_norm].head(1)
-
+# Pre-compute map data (interventions by dept for choropleth)
 ciclope["DEPT_NORM"] = ciclope["DEPARTAMENTO"].map(norm_text)
 ciclope_ant["DEPT_NORM"] = ciclope_ant["DEPARTAMENTO"].map(norm_text)
 proyectos["DEPT_NORM"] = proyectos["DEPARTAMENTO"].map(norm_text)
 
-cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
-cic_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
-proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
-css_dept = css[css["ESPACIO VINCULADO"].map(norm_text) == dept_norm]
-
-mask_colcol = pd.Series(False, index=colcol.index)
-if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
-    mask_colcol = (
-        colcol["DEPARTAMENTOS PARTICIPANTES"]
-        .astype("string")
-        .map(norm_text)
-        .str.contains(dept_norm, na=False)
-    )
-else:
-    st.warning("No encontre la columna 'DEPARTAMENTOS PARTICIPANTES' en ColCol.")
-
-colcol_dept = colcol[mask_colcol]
-
-if "Departamento" in contrapartidas.columns:
-    contr_dept = contrapartidas[
-        contrapartidas["Departamento"].astype("string").map(norm_text) == dept_norm
-    ]
-else:
-    contr_dept = contrapartidas.iloc[0:0]
+dept_interventions = (
+    ciclope[ciclope["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+    .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"].nunique()
+    .to_dict()
+)
 
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "\U0001f4cb Ficha territorial",
-    "\U0001f5c2\ufe0f Proyectos AOD",
-    "\U0001f310 Panorama Nacional",
-    "\U0001f4d6 Gu\u00eda de usuario"
-])
+# =============================================================
+# PANEL GENERAL
+# =============================================================
+if nav == "\U0001f4ca Panel General":
 
+    st.markdown('<div class="section-header">Panorama de la Cooperaci\u00f3n Internacional en Colombia</div>', unsafe_allow_html=True)
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026 \u00b7 Incluye \u00e1mbito nacional y territorial")
 
-# =========================================================
-# TAB 1
-# =========================================================
-with tab1:
+    # Metrics row
+    total_int = ciclope["CODIGO INTERVENCION"].nunique()
+    total_coop = ciclope["NOMBRE ACTOR"].nunique()
+    total_usd_nac = ciclope["VALOR APORTE (USD)"].sum()
+    total_depts = ciclope[ciclope["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
+    total_css = len(css)
 
-    st.markdown(
-        f'<div class="dept-title-banner">\U0001f4cd {dept}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown('<div class="section-header">Informaci\u00f3n General</div>', unsafe_allow_html=True)
-
-    if info.empty:
-        st.warning("No encontre el departamento en la tabla infogeneral.")
-    else:
-        c1, c2, c3 = st.columns(3)
-
-        c1.metric("Capital", get_col(info.iloc[0], "Capital"))
-        c2.metric(
-            "N\u00famero de Municipios",
-            get_col(info.iloc[0], "N\u00famero de Municipios", "Numero de Municipios", "Municipios")
-        )
-
-        pob_raw = get_col(info.iloc[0], "Poblaci\u00f3n", "Poblacion", "Poblaci\u00f3n")
-        try:
-            pob_fmt = f"{int(float(pob_raw)):,}".replace(",", ".")
-        except Exception:
-            pob_fmt = str(pob_raw)
-        c3.metric("Poblaci\u00f3n", pob_fmt)
-
-        with st.expander("Ver registro completo del departamento"):
-            df_det = info.T.reset_index()
-            df_det.columns = ["Campo", "Valor"]
-            df_det = df_det[
-                ~df_det["Campo"].astype(str).str.lower().str.strip().isin(
-                    ["porcentaje de avance", "dept_norm"]
-                )
-            ]
-            st.dataframe(df_det, use_container_width=True, hide_index=True)
-
-    st.markdown(
-        '<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>',
-        unsafe_allow_html=True
-    )
-
-    m1, m2, m3, m4 = st.columns(4)
-    int_26 = cic_dept["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept.columns else 0
-    int_25 = cic_dept_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in cic_dept_ant.columns else 0
-    cod_26 = set(cic_dept["CODIGO INTERVENCION"].dropna().unique())
-    cod_25 = set(cic_dept_ant["CODIGO INTERVENCION"].dropna().unique())
-    int_nuevas = len(cod_26 - cod_25)
-    int_activas = len(cod_26 & cod_25)
-    int_terminadas = len(cod_25 - cod_26)
-    delta_int = int_26 - int_25
-    delta_int_str = ("\u25b2 " if delta_int >= 0 else "\u25bc ") + str(abs(delta_int)) + " vs. 2025"
-    delta_int_color = "#2E7D32" if delta_int >= 0 else "#C8102E"
-    with m1:
-        st.markdown(
-            '<div class="metric-custom">'
-            '<div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
-            f'<div class="metric-custom-value">{int_26}</div>'
-            f'<div class="metric-custom-delta" style="color:{delta_int_color};">{delta_int_str}</div>'
-            f'<div class="metric-custom-sub">\u2665 {int_nuevas} nuevas &nbsp;|&nbsp; \u21ba {int_activas} contin\u00faan &nbsp;|&nbsp; \u2713 {int_terminadas} terminadas</div>'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    m2.metric("Cooperantes",
-              cic_dept["NOMBRE ACTOR"].nunique()
-              if "NOMBRE ACTOR" in cic_dept.columns else 0)
-    municipios_count = (
-        cic_dept["MUNICIPIO"].map(norm_text)
-        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
-        .nunique()
-        if "MUNICIPIO" in cic_dept.columns else 0
-    )
-    municipios_count_ant = (
-        cic_dept_ant["MUNICIPIO"].map(norm_text)
-        .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
-        .nunique()
-        if "MUNICIPIO" in cic_dept_ant.columns else 0
-    )
-    delta_mun = municipios_count - municipios_count_ant
-    delta_mun_str = ("\u25b2 " if delta_mun >= 0 else "\u25bc ") + str(abs(delta_mun)) + " vs. 2025"
-    delta_mun_color = "#2E7D32" if delta_mun >= 0 else "#C8102E"
-    with m3:
-        st.markdown(
-            '<div class="metric-custom">'
-            '<div class="metric-custom-label">Municipios o \u00e1reas no municipalizadas intervenidas</div>'
-            f'<div class="metric-custom-value">{municipios_count}</div>'
-            f'<div class="metric-custom-delta" style="color:{delta_mun_color};">{delta_mun_str}</div>'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    total_usd = cic_dept["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept.columns else 0
-    total_usd_ant = cic_dept_ant["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept_ant.columns else 0
-    delta_usd = total_usd - total_usd_ant
-    delta_usd_str = ("\u25b2 " if delta_usd >= 0 else "\u25bc ") + format_usd(abs(delta_usd)) + " vs. 2025"
-    delta_usd_color = "#2E7D32" if delta_usd >= 0 else "#C8102E"
-    with m4:
-        st.markdown(
-            '<div class="metric-custom">'
-            '<div class="metric-custom-label">Total aporte estimado (USD)</div>'
-            f'<div class="metric-custom-value" style="font-size:1.1rem;">{format_usd(total_usd)}</div>'
-            f'<div class="metric-custom-delta" style="color:{delta_usd_color};">{delta_usd_str}</div>'
-            '</div>',
-            unsafe_allow_html=True
-        )
+    pm1, pm2, pm3, pm4, pm5 = st.columns(5)
+    with pm1:
+        st.markdown(f'<div class="metric-custom"><div class="metric-custom-label">Intervenciones activas</div><div class="metric-custom-value">{total_int:,}</div></div>', unsafe_allow_html=True)
+    with pm2:
+        st.markdown(f'<div class="metric-custom"><div class="metric-custom-label">Cooperantes</div><div class="metric-custom-value">{total_coop:,}</div></div>', unsafe_allow_html=True)
+    with pm3:
+        usd_fmt = "USD " + f"{total_usd_nac/1_000_000:,.0f} M".replace(",", ".")
+        st.markdown(f'<div class="metric-custom"><div class="metric-custom-label">Aporte estimado</div><div class="metric-custom-value" style="font-size:1.1rem;">{usd_fmt}</div></div>', unsafe_allow_html=True)
+    with pm4:
+        st.markdown(f'<div class="metric-custom"><div class="metric-custom-label">Departamentos con AOD</div><div class="metric-custom-value">{total_depts}</div></div>', unsafe_allow_html=True)
+    with pm5:
+        st.markdown(f'<div class="metric-custom panel-stat-yellow"><div class="metric-custom-label">Proyectos CSS activos</div><div class="metric-custom-value">{total_css}</div></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    c5, c6 = st.columns(2)
 
-    with c5:
-        st.markdown("**Top 5 cooperantes por USD**")
-        top_act = top_by_sum(cic_dept, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
-        if not top_act.empty:
-            chart_act = (
-                alt.Chart(top_act)
-                .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
-                .encode(
-                    y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
-                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
-                    tooltip=["NOMBRE ACTOR:N",
-                             alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                )
-                .properties(height=200)
-            )
-            st.altair_chart(chart_act, use_container_width=True)
-            top_act_disp = top_act.copy()
-            top_act_disp["VALOR APORTE (USD)"] = top_act_disp["VALOR APORTE (USD)"].apply(format_usd)
-            st.dataframe(top_act_disp, use_container_width=True, hide_index=True)
-        else:
-            st.info("Sin datos suficientes para cooperantes.")
+    # Map + top lists
+    col_map, col_tops = st.columns([3, 2])
 
-    with c6:
-        st.markdown("**Top 5 ODS por USD**")
-        top_ods = top_by_sum(cic_dept, "ODS", "VALOR APORTE (USD)", 5)
-        if not top_ods.empty:
-            chart_ods = (
-                alt.Chart(top_ods)
-                .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
-                .encode(
-                    y=alt.Y("ODS:N", sort="-x", title=""),
-                    x=alt.X("VALOR APORTE (USD):Q", title="USD"),
-                    tooltip=["ODS:N",
-                             alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                )
-                .properties(height=200)
-            )
-            st.altair_chart(chart_ods, use_container_width=True)
-            top_ods_disp = top_ods.copy()
-            top_ods_disp["VALOR APORTE (USD)"] = top_ods_disp["VALOR APORTE (USD)"].apply(format_usd)
-            top_ods_disp["ODS"] = top_ods_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-            st.dataframe(top_ods_disp, use_container_width=True, hide_index=True)
-        else:
-            st.info("Sin datos suficientes para ODS.")
+    with col_map:
+        st.markdown('<div class="map-title">Intervenciones por departamento \u2014 haz clic para explorar</div>', unsafe_allow_html=True)
+        fig_panel = make_map(geo, dept_interventions)
+        selected = st.plotly_chart(fig_panel, use_container_width=True, on_select="rerun", key="panel_map")
+        # Handle map click
+        if selected and selected.get("selection") and selected["selection"].get("points"):
+            clicked = selected["selection"]["points"][0].get("hovertext", "")
+            if clicked:
+                st.session_state["dept_from_map"] = clicked
+                st.info(f"\U0001f4cd Seleccionaste **{clicked}** \u2014 ve a la pesta\u00f1a **Ficha Territorial** para ver el detalle.")
+
+    with col_tops:
+        st.markdown("**Top 5 departamentos por intervenciones**")
+        top5_depts = (
+            ciclope[ciclope["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+            .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"].nunique()
+            .sort_values(ascending=False).head(5).reset_index()
+        )
+        top5_depts.columns = ["Departamento", "Intervenciones"]
+        chart_top5 = (
+            alt.Chart(top5_depts)
+            .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+            .encode(
+                y=alt.Y("Departamento:N", sort="-x", title=""),
+                x=alt.X("Intervenciones:Q"),
+                tooltip=["Departamento:N", "Intervenciones:Q"]
+            ).properties(height=180)
+        )
+        st.altair_chart(chart_top5, use_container_width=True)
+
+        st.markdown("**Top 5 ODS por aporte (USD)**")
+        top5_ods = (
+            ciclope.groupby("ODS")["VALOR APORTE (USD)"].sum()
+            .sort_values(ascending=False).head(5).reset_index()
+        )
+        top5_ods["ODS_LABEL"] = top5_ods["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+        top5_ods["USD"] = top5_ods["VALOR APORTE (USD)"].apply(format_usd)
+        st.dataframe(top5_ods[["ODS_LABEL", "USD"]].rename(columns={"ODS_LABEL": "ODS", "USD": "Aporte"}),
+                     use_container_width=True, hide_index=True)
 
     st.markdown(
-        '<div class="section-header">Programas Internos APC-Colombia</div>',
+        '<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>',
         unsafe_allow_html=True
     )
 
-    p1, p2 = st.columns(2)
-    with p1:
-        st.markdown("**ColCol - Colombia Ense\u00f1a Colombia 2025-2026**")
-        st.metric("Registros encontrados", len(colcol_dept))
-        colcol_view = colcol_dept.copy()
-        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
-            colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
-                pd.to_numeric(colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
-                .apply(format_cop)
-            )
-        st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
 
-    with p2:
-        st.markdown("**Contrapartidas 2025-2026**")
-        st.metric("Registros encontrados", len(contr_dept))
-        contr_view = contr_dept.copy()
-        for col in contr_view.columns:
-            if str(col).strip().strip("\'") in ["Monto por APC", "Monto total", "Monto total "]:
-                contr_view[col] = pd.to_numeric(contr_view[col], errors="coerce").apply(format_cop)
-        st.dataframe(contr_view.head(50), use_container_width=True, hide_index=True)
 
-    # ---- Cooperaci\u00f3n Sur-Sur ----
-    st.markdown('<div class="section-header">Proyectos de Cooperaci\u00f3n Sur Sur aprobados y vigentes</div>',
-                unsafe_allow_html=True)
-    st.caption("Datos actualizados a abril de 2026 \u00b7 APC Colombia, Direcci\u00f3n de Oferta")
+# =============================================================
+# FICHA TERRITORIAL
+# =============================================================
+elif nav == "\U0001f5fa\ufe0f Ficha Territorial":
 
-    if css_dept.empty:
-        st.info("No se encontraron proyectos de Cooperaci\u00f3n Sur Sur para este departamento.")
-    else:
-        proyectos_css_unicos = css_dept["C\u00f3digo"].nunique() if "C\u00f3digo" in css_dept.columns else len(css_dept)
-        st.metric("Proyectos CSS \u00fanicos", proyectos_css_unicos)
+    col_sel, col_map_t = st.columns([2, 3])
+    with col_sel:
+        # Use dept from map click if available
+        default_idx = 0
+        if "dept_from_map" in st.session_state:
+            map_dept = st.session_state["dept_from_map"]
+            map_dept_norm = norm_text(map_dept)
+            for i, d in enumerate(depts):
+                if norm_text(d) == map_dept_norm:
+                    default_idx = i
+                    break
+        dept = st.selectbox("\U0001f5fa\ufe0f Selecciona un departamento", depts, index=default_idx)
 
-        COLS_CSS = [
-            "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO", "SEGUNDO OFERENTE",
-            "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA", "FECHA DE APROBACION",
-            "OBJETIVO GENERAL/DESCRIPCION DE LA INICIATIVA", "ESTADO",
-            "ENTIDAD(ES) NACIONAL(ES)", "ENTIDAD(ES) EXTRANJERA(S)"
+    infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
+    dept_norm = norm_text(dept)
+    info = infogeneral[infogeneral["DEPT_NORM"] == dept_norm].head(1)
+    cic_dept = ciclope[ciclope["DEPT_NORM"] == dept_norm]
+    cic_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
+    proj_dept = proyectos[proyectos["DEPT_NORM"] == dept_norm]
+    css_dept = css[css["ESPACIO VINCULADO"].map(norm_text) == dept_norm]
+
+    mask_colcol = pd.Series(False, index=colcol.index)
+    if "DEPARTAMENTOS PARTICIPANTES" in colcol.columns:
+        mask_colcol = (
+            colcol["DEPARTAMENTOS PARTICIPANTES"]
+            .astype("string").map(norm_text)
+            .str.contains(dept_norm, na=False)
+        )
+    colcol_dept = colcol[mask_colcol]
+
+    if "Departamento" in contrapartidas.columns:
+        contr_dept = contrapartidas[
+            contrapartidas["Departamento"].astype("string").map(norm_text) == dept_norm
         ]
-        cols_css_show = [c for c in COLS_CSS if c in css_dept.columns]
-        css_disp = css_dept[cols_css_show].copy()
-        st.dataframe(css_disp, use_container_width=True, hide_index=True)
+    else:
+        contr_dept = contrapartidas.iloc[0:0]
 
-    st.markdown("---")
-    st.markdown("**Descargar ficha territorial completa**")
-    excel_ficha = to_excel_ficha(info, cic_dept, colcol_dept, contr_dept, css_dept)
-    col_pdf, col_xlsx = st.columns(2)
-    with col_xlsx:
-        st.download_button(
-            label="Descargar Ficha Territorial (Excel)",
-            data=excel_ficha,
-            file_name=f"Ficha_Territorial_{dept}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    with col_pdf:
-        pdf_ficha = to_pdf_ficha(dept, info, cic_dept, colcol_dept, contr_dept, css_dept)
-        st.download_button(
-            label="Descargar Ficha Territorial (PDF)",
-            data=pdf_ficha,
-            file_name=f"Ficha_Territorial_{dept}.pdf",
-            mime="application/pdf",
-        )
-
-    st.markdown(
-        '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
-        unsafe_allow_html=True
-    )
+    with col_map_t:
+        st.markdown(f'<div class="map-title">\U0001f4cd {dept} resaltado en el mapa</div>', unsafe_allow_html=True)
+        fig_terr = make_map(geo, dept_interventions, selected_dept=dept)
+        st.plotly_chart(fig_terr, use_container_width=True, key="terr_map")
 
 
-# =========================================================
-# TAB 2
-# =========================================================
-with tab2:
+    # ---- Proyectos AOD (dentro de Ficha Territorial) ----
+    st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        f'<div class="dept-title-banner">\U0001f4cd {dept} \u2014 Proyectos AOD activos</div>',
-        unsafe_allow_html=True
-    )
     st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
 
     search = st.text_input("Buscar en proyectos").strip()
@@ -1267,10 +1368,151 @@ with tab2:
 
 
 
-# =========================================================
-# TAB 3 - PANORAMA NACIONAL
-# =========================================================
-with tab3:
+
+
+# =============================================================
+# FICHA SECTORIAL
+# =============================================================
+elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
+
+    sectores_list = info_s["Nombre del sector"].dropna().tolist()
+    sector = st.selectbox("\U0001f3db\ufe0f Selecciona un sector", sectores_list)
+    sector_norm = norm_text(sector)
+
+    st.markdown(
+        f'<div class="dept-title-banner">\U0001f3db\ufe0f {sector}</div>',
+        unsafe_allow_html=True
+    )
+
+    # Info general del sector
+    st.markdown('<div class="section-header">Informaci\u00f3n General del Sector</div>', unsafe_allow_html=True)
+    info_sector = info_s[info_s["Nombre del sector"].map(norm_text) == sector_norm]
+    if not info_sector.empty:
+        row = info_sector.iloc[0]
+        sg1, sg2 = st.columns(2)
+        sg1.metric("Cabeza de sector", str(row.get("Cabeza de sector", "")))
+        sg2.metric("Planes de trabajo vinculados al SNCIC",
+                   "S\u00ed" if str(row.get("Cabezas del sector asociadas con planes de trabajo en el marco del SNCIC", "")).lower() in ["s\u00ed", "si", "yes"] else "No")
+        planes = str(row.get("Planes de trabajo vinculados", ""))
+        if planes and planes not in ("nan", "None", ""):
+            st.markdown(f"**Planes de trabajo:** {planes}")
+
+    # AOD del sector
+    st.markdown('<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>', unsafe_allow_html=True)
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+
+    aod_sector = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)]
+
+    if aod_sector.empty:
+        st.info("No se encontraron intervenciones de AOD para este sector.")
+    else:
+        aod_sector["VALOR APORTE (USD)"] = pd.to_numeric(aod_sector["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+        sm1, sm2, sm3, sm4 = st.columns(4)
+        sm1.metric("Intervenciones (\u00fanicas)", aod_sector["CODIGO INTERVENCION"].nunique()
+                   if "CODIGO INTERVENCION" in aod_sector.columns else 0)
+        sm2.metric("Cooperantes", aod_sector["NOMBRE ACTOR"].nunique()
+                   if "NOMBRE ACTOR" in aod_sector.columns else 0)
+        sm3.metric("Departamentos", aod_sector[aod_sector["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
+                   if "DEPARTAMENTO" in aod_sector.columns else 0)
+        total_s = aod_sector["VALOR APORTE (USD)"].sum()
+        sm4.metric("Total aporte (USD)", format_usd(total_s))
+
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.markdown("**Top 5 cooperantes por USD**")
+            top_coop_s = top_by_sum(aod_sector, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
+            if not top_coop_s.empty:
+                chart_cs = (
+                    alt.Chart(top_coop_s)
+                    .mark_bar(color="#003087", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                    .encode(
+                        y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
+                        x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                        tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                    ).properties(height=200)
+                )
+                st.altair_chart(chart_cs, use_container_width=True)
+                top_coop_s_disp = top_coop_s.copy()
+                top_coop_s_disp["VALOR APORTE (USD)"] = top_coop_s_disp["VALOR APORTE (USD)"].apply(format_usd)
+                st.dataframe(top_coop_s_disp, use_container_width=True, hide_index=True)
+
+        with sc2:
+            st.markdown("**Top 5 ODS por USD**")
+            top_ods_s = top_by_sum(aod_sector, "ODS", "VALOR APORTE (USD)", 5)
+            if not top_ods_s.empty:
+                chart_os = (
+                    alt.Chart(top_ods_s)
+                    .mark_bar(color="#1565C0", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                    .encode(
+                        y=alt.Y("ODS:N", sort="-x", title=""),
+                        x=alt.X("VALOR APORTE (USD):Q", title="USD"),
+                        tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
+                    ).properties(height=200)
+                )
+                st.altair_chart(chart_os, use_container_width=True)
+                top_ods_s_disp = top_ods_s.copy()
+                top_ods_s_disp["VALOR APORTE (USD)"] = top_ods_s_disp["VALOR APORTE (USD)"].apply(format_usd)
+                top_ods_s_disp["ODS"] = top_ods_s_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+                st.dataframe(top_ods_s_disp, use_container_width=True, hide_index=True)
+
+        # Mapa departamentos del sector
+        st.markdown('<div class="section-header">Departamentos con intervenciones</div>', unsafe_allow_html=True)
+        dept_vals_s = (
+            aod_sector[aod_sector["DEPARTAMENTO"] != "\u00c1mbito Nacional"]
+            .groupby("DEPARTAMENTO")["CODIGO INTERVENCION"].nunique().to_dict()
+        )
+        fig_sector_map = make_map(geo, dept_vals_s)
+        st.plotly_chart(fig_sector_map, use_container_width=True, key="sector_map")
+
+    # CSS del sector
+    st.markdown('<div class="section-header">Proyectos de Cooperaci\u00f3n Sur Sur</div>', unsafe_allow_html=True)
+    st.caption("Datos actualizados a abril de 2026 \u00b7 APC Colombia, Direcci\u00f3n de Oferta")
+
+    css_sector = css_s[css_s["ESPACIO VINCULADO"].map(norm_text).str.contains(sector_norm, na=False)]
+    if css_sector.empty:
+        st.info("No se encontraron proyectos CSS para este sector.")
+    else:
+        st.metric("Proyectos CSS \u00fanicos", css_sector["C\u00f3digo"].nunique() if "C\u00f3digo" in css_sector.columns else len(css_sector))
+        COLS_CSS_S = [
+            "C\u00f3digo", "VIA DE COOPERACION", "MODALIDAD", "PAIS SOCIO",
+            "REGION", "NOMBRE DE LA INICIATIVA", "TIPO DE INICIATIVA",
+            "FECHA DE APROBACION", "ESTADO", "ENTIDAD(ES) NACIONAL(ES)"
+        ]
+        cols_s = [c for c in COLS_CSS_S if c in css_sector.columns]
+        st.dataframe(css_sector[cols_s], use_container_width=True, hide_index=True)
+
+    # ColCol del sector
+    st.markdown('<div class="section-header">Colombia Ense\u00f1a Colombia (ColCol)</div>', unsafe_allow_html=True)
+    colcol_sector = colcol_s[colcol_s["SECTOR VINCULADO"].map(norm_text).str.contains(sector_norm, na=False)]
+    if colcol_sector.empty:
+        st.info("No se encontraron intercambios ColCol para este sector.")
+    else:
+        st.metric("Intercambios encontrados", len(colcol_sector))
+        COLS_CC_S = [
+            "NOMBRE DEL INTERCAMBIO", "A\u00d1O DE REALIZACI\u00d3N ",
+            "PAIS SOCIO" if "PAIS SOCIO" in colcol_sector.columns else "COOPERANTE 1",
+            "ODS PRINCIPAL", "PRESUPUESTO ESTIMADO APC COLOMBIA"
+        ]
+        cols_cc_s = [c for c in COLS_CC_S if c in colcol_sector.columns]
+        colcol_s_disp = colcol_sector[cols_cc_s].copy()
+        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_s_disp.columns:
+            colcol_s_disp["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+                pd.to_numeric(colcol_s_disp["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
+                .apply(format_cop)
+            )
+        st.dataframe(colcol_s_disp, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        '<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>',
+        unsafe_allow_html=True
+    )
+
+
+
+# =============================================================
+# PANORAMA NACIONAL
+# =============================================================
+elif nav == "\U0001f310 Panorama Nacional":
 
     st.markdown(
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
@@ -1473,10 +1715,12 @@ with tab3:
         unsafe_allow_html=True
     )
 
-# =========================================================
-# TAB 4
-# =========================================================
-with tab4:
+
+
+# =============================================================
+# GUIA DE USUARIO
+# =============================================================
+elif nav == "\U0001f4d6 Gu\u00eda de usuario":
 
     st.markdown(
         '<div class="dept-title-banner">Gu\u00eda de usuario</div>',
