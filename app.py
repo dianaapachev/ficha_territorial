@@ -1140,28 +1140,30 @@ info_s, aod_s, css_s, colcol_s = load_sectores()
 geo = load_geo()
 
 # \u2500\u2500 HEADER WITH LOGOS \u2500\u2500
-col_logo_l, col_title, col_logo_r = st.columns([1, 4, 1])
-with col_logo_l:
-    try:
-        st.image(LOGO_APC, width=120)
-    except:
-        st.markdown('<div style="color:white;font-weight:700;font-size:1rem;">APC</div>', unsafe_allow_html=True)
+col_title, col_logos = st.columns([3, 1])
 with col_title:
-    st.markdown("""
-    <div style="text-align:center; padding: 0.5rem 0;">
-        <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:1.2rem;color:#003087;">
-            Herramienta de Caracterizaci\u00f3n Territorial para la Gesti\u00f3n de la Cooperaci\u00f3n Internacional
-        </div>
-        <div style="font-size:0.8rem;color:#5A6A85;margin-top:3px;">
-            Sistema Nacional de Cooperaci\u00f3n Internacional \u00b7 APC-Colombia
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-with col_logo_r:
-    try:
-        st.image(LOGO_SNCIC, width=110)
-    except:
-        st.markdown('<div style="color:#003087;font-weight:700;">SNCIC</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="padding: 0.6rem 0 0.2rem 0;">'
+        '<div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:1.25rem;color:#003087;line-height:1.3;">'
+        'Caracterizaci\u00f3n territorial y sectorial para la gesti\u00f3n de la cooperaci\u00f3n internacional'
+        '</div>'
+        '<div style="font-size:0.82rem;color:#5A6A85;margin-top:4px;font-family:Source Sans 3,sans-serif;">'
+        'Sistema Nacional de Cooperaci\u00f3n Internacional de Colombia'
+        '</div></div>',
+        unsafe_allow_html=True
+    )
+with col_logos:
+    logo_col1, logo_col2 = st.columns(2)
+    with logo_col1:
+        try:
+            st.image(LOGO_APC, use_container_width=True)
+        except:
+            st.markdown("APC")
+    with logo_col2:
+        try:
+            st.image(LOGO_SNCIC, use_container_width=True)
+        except:
+            st.markdown("SNCIC")
 
 st.markdown('<div style="height:4px;background:linear-gradient(90deg,#F5A623 33%,#003087 33% 66%,#C8102E 66%);margin-bottom:1.5rem;"></div>', unsafe_allow_html=True)
 
@@ -1194,18 +1196,7 @@ dept_interventions = {norm_text(k): v for k, v in _di_raw.items()}
 # =============================================================
 if nav == "\U0001f5fa\ufe0f Ficha Territorial":
 
-    col_sel, col_map_t = st.columns([2, 3])
-    with col_sel:
-        # Use dept from map click if available
-        default_idx = 0
-        if "dept_from_map" in st.session_state:
-            map_dept = st.session_state["dept_from_map"]
-            map_dept_norm = norm_text(map_dept)
-            for i, d in enumerate(depts):
-                if norm_text(d) == map_dept_norm:
-                    default_idx = i
-                    break
-        dept = st.selectbox("\U0001f5fa\ufe0f Selecciona un departamento", depts, index=default_idx)
+    dept = st.selectbox("\U0001f5fa\ufe0f Selecciona un departamento", depts)
 
     infogeneral["DEPT_NORM"] = infogeneral[DEPT_COL_INFO].map(norm_text)
     dept_norm = norm_text(dept)
@@ -1230,11 +1221,6 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
         ]
     else:
         contr_dept = contrapartidas.iloc[0:0]
-
-    with col_map_t:
-        st.markdown(f'<div class="map-title">\U0001f4cd {dept} resaltado en el mapa</div>', unsafe_allow_html=True)
-        fig_terr = make_map(geo, dept_interventions, selected_dept=dept)
-        st.plotly_chart(fig_terr, use_container_width=True, key="terr_map")
 
 
     st.markdown(
@@ -1389,14 +1375,23 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
     p1, p2 = st.columns(2)
     with p1:
         st.markdown("**ColCol - Colombia Ense\u00f1a Colombia**")
-        st.metric("Registros encontrados", len(colcol_dept))
+        colcol_unicos = colcol_dept["CODIGO"].nunique() if "CODIGO" in colcol_dept.columns else len(colcol_dept)
+        st.metric("Intercambios \u00fanicos", colcol_unicos)
+        COLS_CC = [
+            "CODIGO", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
+            "BUENA PR\u00c1CTICA", "L\u00cdNEA TEM\u00c1TICA",
+            "MUNICIPIO EN EL QUE SE DESARROLL\u00d3",
+            "A\u00d1O DE REALIZACI\u00d3N ", "ENTIDAD SOCIA NACIONAL",
+            "PRESUPUESTO ESTIMADO APC COLOMBIA"
+        ]
         colcol_view = colcol_dept.copy()
         if "PRESUPUESTO ESTIMADO APC COLOMBIA" in colcol_view.columns:
             colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
                 pd.to_numeric(colcol_view["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
                 .apply(format_cop)
             )
-        st.dataframe(colcol_view.head(50), use_container_width=True, hide_index=True)
+        cols_cc_show = [c for c in COLS_CC if c in colcol_view.columns]
+        st.dataframe(colcol_view[cols_cc_show], use_container_width=True, hide_index=True)
     with p2:
         st.markdown("**Contrapartidas**")
         st.metric("Registros encontrados", len(contr_dept))
@@ -1424,14 +1419,33 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
         css_disp = css_dept[cols_css_show].copy()
         st.dataframe(css_disp, use_container_width=True, hide_index=True)
 
-    # ---- Descargas ----
+    # ---- Proyectos AOD ----
+    st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    search = st.text_input("Buscar en proyectos").strip()
+    df_aod_terr = proj_dept.copy()
+    if search and not df_aod_terr.empty:
+        candidate_cols = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "NOMBRE ACTOR", "MUNICIPIO", "ODS"]
+        cols = [c for c in candidate_cols if c in df_aod_terr.columns]
+        if cols:
+            mask = False
+            for c in cols:
+                mask = mask | df_aod_terr[c].astype(str).str.contains(search, case=False, na=False)
+            df_aod_terr = df_aod_terr[mask]
+    df_aod_terr = df_aod_terr.drop(columns=["DEPT_NORM"], errors="ignore")
+    COLS_SHOW = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
+                 "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
+    cols_show = [c for c in COLS_SHOW if c in df_aod_terr.columns]
+    st.dataframe(df_aod_terr[cols_show], use_container_width=True, hide_index=True)
+
+    # ---- Descargas (al final, incluye todo) ----
     st.markdown("---")
     st.markdown("**Descargar ficha territorial completa**")
     excel_ficha = to_excel_ficha(info, cic_dept, colcol_dept, contr_dept, css_dept)
     col_pdf, col_xlsx = st.columns(2)
     with col_xlsx:
         st.download_button(
-            label="Descargar Ficha Territorial (Excel)",
+            label="\U0001f4e5 Descargar en Excel",
             data=excel_ficha,
             file_name=f"Ficha_Territorial_{dept}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1439,63 +1453,12 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
     with col_pdf:
         pdf_ficha = to_pdf_ficha(dept, info, cic_dept, colcol_dept, contr_dept, css_dept)
         st.download_button(
-            label="Descargar Ficha Territorial (PDF)",
+            label="\U0001f4e5 Descargar en PDF",
             data=pdf_ficha,
             file_name=f"Ficha_Territorial_{dept}.pdf",
             mime="application/pdf",
         )
-
     st.markdown('<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>', unsafe_allow_html=True)
-
-    # ---- Proyectos AOD ----
-    st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
-
-    search = st.text_input("Buscar en proyectos").strip()
-    df = proj_dept.copy()
-
-    if search and not df.empty:
-        candidate_cols = [
-            "NOMBRE INTERVENCION", "OBJETIVO GENERAL",
-            "NOMBRE ACTOR", "MUNICIPIO", "ODS", "META ODS"
-        ]
-        cols = [c for c in candidate_cols if c in df.columns]
-        if cols:
-            mask = False
-            for c in cols:
-                mask = mask | df[c].astype(str).str.contains(search, case=False, na=False)
-            df = df[mask]
-
-    df = df.drop(columns=["DEPT_NORM"], errors="ignore")
-    COLS_SHOW = [
-        "NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
-        "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"
-    ]
-    cols_show = [c for c in COLS_SHOW if c in df.columns]
-    st.dataframe(df[cols_show], use_container_width=True, hide_index=True)
-
-    col_dl1, col_dl2 = st.columns(2)
-    with col_dl1:
-        excel_proj = to_excel_proyectos(df)
-        st.download_button(
-            label="Descargar Excel",
-            data=excel_proj,
-            file_name=f"Proyectos_AOD_{dept}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    with col_dl2:
-        pdf_proj = to_pdf_proyectos(dept, df)
-        st.download_button(
-            label="Descargar PDF",
-            data=pdf_proj,
-            file_name=f"Proyectos_AOD_{dept}.pdf",
-            mime="application/pdf",
-        )
-
-    st.markdown(
-        '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
-        unsafe_allow_html=True
-    )
 
 
 
@@ -1625,10 +1588,55 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
             )
         st.dataframe(colcol_s_disp, use_container_width=True, hide_index=True)
 
-    st.markdown(
-        '<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>',
-        unsafe_allow_html=True
-    )
+    # ---- Proyectos AOD del sector ----
+    st.markdown('<div class="section-header">Proyectos AOD del sector</div>', unsafe_allow_html=True)
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    aod_sector_proj = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)].copy()
+    aod_sector_proj = aod_sector_proj.drop(columns=["DEPT_NORM"] if "DEPT_NORM" in aod_sector_proj.columns else [], errors="ignore")
+    COLS_AOD_S = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
+                  "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
+    cols_aod_s = [c for c in COLS_AOD_S if c in aod_sector_proj.columns]
+    if not aod_sector_proj.empty:
+        search_s = st.text_input("Buscar en proyectos del sector").strip()
+        if search_s:
+            mask_s = False
+            for c in ["NOMBRE INTERVENCION", "NOMBRE ACTOR", "MUNICIPIO", "ODS"]:
+                if c in aod_sector_proj.columns:
+                    mask_s = mask_s | aod_sector_proj[c].astype(str).str.contains(search_s, case=False, na=False)
+            aod_sector_proj = aod_sector_proj[mask_s]
+        st.dataframe(aod_sector_proj[cols_aod_s], use_container_width=True, hide_index=True)
+    else:
+        st.info("Sin proyectos AOD para este sector.")
+
+    # ---- Descargas Ficha Sectorial ----
+    st.markdown("---")
+    st.markdown("**Descargar ficha sectorial completa**")
+    output_s = BytesIO()
+    with pd.ExcelWriter(output_s, engine="openpyxl") as writer:
+        if not info_sector.empty:
+            info_sector.T.reset_index().rename(columns={"index": "Campo", 0: "Valor"}).to_excel(writer, sheet_name="Info General", index=False)
+        if not aod_sector.empty:
+            aod_sector.to_excel(writer, sheet_name="AOD", index=False)
+        if not css_sector.empty:
+            css_sector.to_excel(writer, sheet_name="CSS", index=False)
+        if not colcol_sector.empty:
+            colcol_sector.to_excel(writer, sheet_name="ColCol", index=False)
+        if not aod_sector_proj.empty:
+            aod_sector_proj.to_excel(writer, sheet_name="Proyectos AOD", index=False)
+    output_s.seek(0)
+    excel_sector = output_s.getvalue()
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        st.download_button(
+            label="\U0001f4e5 Descargar en Excel",
+            data=excel_sector,
+            file_name=f"Ficha_Sectorial_{sector}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with col_s2:
+        st.info("Descarga en PDF disponible pr\u00f3ximamente.")
+
+    st.markdown('<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>', unsafe_allow_html=True)
 
 
 
@@ -1852,51 +1860,41 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
 
     guia_html = (
         '<div class="guia-card">'
-        '<div class="guia-intro">\u00bfQu\u00e9 es la Ficha Territorial?</div>'
-        '<p>La ficha territorial es una aplicaci\u00f3n que permite conocer c\u00f3mo se est\u00e1 moviendo '
-        'la cooperaci\u00f3n internacional en Colombia.</p>'
-        '<p>En la primera secci\u00f3n encontrar\u00e1 <strong>informaci\u00f3n general del territorio</strong>. '
-        'Podr\u00e1 identificar si el departamento cuenta con una dependencia encargada de '
-        'cooperaci\u00f3n internacional, los enlaces o personas clave que participan en la gobernanza '
-        'de la cooperaci\u00f3n en el territorio y si dispone de un plan de trabajo dentro del '
-        'Sistema Nacional de Cooperaci\u00f3n Internacional, entre otros elementos de contexto '
-        'institucional.</p>'
-        '<p>Posteriormente, encontrar\u00e1 una secci\u00f3n relacionada con la '
-        '<strong>Ayuda Oficial al Desarrollo (AOD)</strong>. Esta informaci\u00f3n proviene del '
-        'sistema de informaci\u00f3n C\u00edclope, administrado por la Agencia Presidencial de '
-        'Cooperaci\u00f3n Internacional de Colombia (APC-Colombia). En este apartado se presentan, '
-        'entre otros aspectos, los principales cooperantes presentes en el territorio, los '
-        'municipios que est\u00e1n siendo intervenidos y una estimaci\u00f3n de los recursos provenientes '
-        'de cooperaci\u00f3n internacional. Asimismo, podr\u00e1 identificar los Objetivos de Desarrollo '
-        'Sostenible (ODS) que concentran mayor financiaci\u00f3n en cada departamento.</p>'
-        '<p>La ficha tambi\u00e9n muestra si el departamento participa en algunos de los '
-        '<strong>programas de la oferta institucional de APC-Colombia</strong>. Entre ellos se '
-        'encuentran la estrategia <em>Colombia Ense\u00f1a Colombia</em>, orientada a promover '
-        'intercambios de conocimiento en diversas tem\u00e1ticas, y el '
-        '<em>Programa de Contrapartidas</em>, que busca facilitar recursos financieros para '
-        'fortalecer iniciativas que ya cuentan con financiaci\u00f3n de cooperaci\u00f3n internacional.</p>'
-        '<p>En la segunda pesta\u00f1a, denominada <strong>Proyectos AOD</strong>, encontrar\u00e1 el '
-        'listado de proyectos que, de acuerdo con el sistema de informaci\u00f3n C\u00edclope, se est\u00e1n '
-        'ejecutando en cada departamento.</p>'
-        '<p>En la tercera pesta\u00f1a, denominada <strong>Panorama Nacional</strong>, se presentan '
-        'los totales nacionales de intervenciones, cooperantes y recursos, e identifica los '
-        'principales cooperantes por monto y por n\u00famero de intervenciones, los Objetivos de '
-        'Desarrollo Sostenible (ODS) y los sectores de gobierno con mayor financiaci\u00f3n, as\u00ed '
-        'como los departamentos con mayor presencia de cooperaci\u00f3n internacional. La informaci\u00f3n '
-        'incluye tanto las intervenciones de \u00e1mbito territorial como las de \u00e1mbito nacional.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver un comparativo con el trimestre inmediatamente anterior. '
+        '<div class="guia-intro">\u00bfQu\u00e9 es esta herramienta?</div>'
+        '<p>Esta herramienta permite conocer c\u00f3mo se est\u00e1 moviendo la cooperaci\u00f3n '
+        'internacional en Colombia, tanto desde una perspectiva territorial como sectorial. '
+        'Integra informaci\u00f3n de la Ayuda Oficial al Desarrollo (AOD), la cooperaci\u00f3n Sur-Sur '
+        'y los programas institucionales de APC-Colombia.</p>'
+        '<p><strong>Panorama Nacional</strong> presenta los totales nacionales de intervenciones, '
+        'cooperantes y recursos de cooperaci\u00f3n internacional, e identifica los principales '
+        'cooperantes, ODS, sectores y departamentos con mayor financiaci\u00f3n. Incluye '
+        'comparativos con el trimestre anterior.</p>'
+        '<p><strong>Ficha Territorial</strong> permite explorar la cooperaci\u00f3n en cada uno '
+        'de los 33 departamentos del pa\u00eds. Para cada territorio encontrar\u00e1: informaci\u00f3n '
+        'general e institucional, indicadores de AOD con comparativos vs. 2025, programas '
+        'de la oferta de APC-Colombia (ColCol y Contrapartidas), proyectos de cooperaci\u00f3n '
+        'Sur-Sur vigentes, y el listado detallado de proyectos AOD activos. '
+        'Toda la informaci\u00f3n puede descargarse en Excel o PDF.</p>'
+        '<p><strong>Ficha Sectorial</strong> permite explorar la cooperaci\u00f3n por sector de gobierno '
+        '(26 sectores). Para cada sector encontrar\u00e1: informaci\u00f3n general, indicadores y '
+        'gr\u00e1ficas de AOD, proyectos de cooperaci\u00f3n Sur-Sur, intercambios ColCol y el listado '
+        'de proyectos AOD activos. La informaci\u00f3n puede descargarse en Excel.</p>'
+        '<p>En algunos indicadores podr\u00e1 ver comparativos con el trimestre 4 de 2025. '
         'Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n respecto al per\u00edodo anterior. '
-        'En la tarjeta de intervenciones encontrar\u00e1 las siguientes convenciones: '
-        '\u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
+        'En la tarjeta de intervenciones: \u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
         '</div>'
     )
     st.markdown(guia_html, unsafe_allow_html=True)
 
-    col_g1, col_g2 = st.columns(2)
-    with col_g1:
-        st.info("**Pesta\u00f1a 1 - Ficha territorial**\n\nInformaci\u00f3n general, AOD y programas internos APC-Colombia por departamento. Incluye descarga en Excel.")
-    with col_g2:
-        st.info("**Pesta\u00f1a 2 - Proyectos AOD**\n\nListado completo de proyectos activos seg\u00fan C\u00edclope. Descarga en CSV y Excel disponible.")
+    g1, g2, g3, g4 = st.columns(4)
+    with g1:
+        st.info("**\U0001f310 Panorama Nacional**\n\nVisi\u00f3n agregada de la cooperaci\u00f3n en Colombia con comparativos.")
+    with g2:
+        st.info("**\U0001f5fa\ufe0f Ficha Territorial**\n\nCooperaci\u00f3n por departamento. Descarga en Excel y PDF.")
+    with g3:
+        st.info("**\U0001f3db\ufe0f Ficha Sectorial**\n\nCooperaci\u00f3n por sector de gobierno. Descarga en Excel.")
+    with g4:
+        st.info("**Fuentes**\n\nAOD: C\u00edclope (26/03/2026). CSS: APC-Colombia (04/2026). ColCol: APC-Colombia.")
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
