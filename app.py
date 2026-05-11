@@ -1551,7 +1551,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
         colcol_unicos = colcol_dept["CODIGO"].nunique() if "CODIGO" in colcol_dept.columns else len(colcol_dept)
         st.metric("Intercambios \u00fanicos", colcol_unicos)
         COLS_CC = [
-            "CODIGO", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
+            "CODIGO", "ETAPA", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
             "BUENA PR\u00c1CTICA", "L\u00cdNEA TEM\u00c1TICA",
             "MUNICIPIO EN EL QUE SE DESARROLL\u00d3",
             "A\u00d1O DE REALIZACI\u00d3N ", "ENTIDAD SOCIA NACIONAL",
@@ -1595,19 +1595,12 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
     # ---- Proyectos AOD ----
     st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
     st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
-    search = st.text_input("Buscar en proyectos").strip()
-    df_aod_terr = proj_dept.copy()
-    if search and not df_aod_terr.empty:
-        candidate_cols = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "NOMBRE ACTOR", "MUNICIPIO", "ODS"]
-        cols = [c for c in candidate_cols if c in df_aod_terr.columns]
-        if cols:
-            mask = False
-            for c in cols:
-                mask = mask | df_aod_terr[c].astype(str).str.contains(search, case=False, na=False)
-            df_aod_terr = df_aod_terr[mask]
-    df_aod_terr = df_aod_terr.drop(columns=["DEPT_NORM"], errors="ignore")
-    COLS_SHOW = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
-                 "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
+    df_aod_terr = proj_dept.drop(columns=["DEPT_NORM"], errors="ignore").copy()
+    proy_unicos_terr = df_aod_terr["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in df_aod_terr.columns else len(df_aod_terr)
+    st.metric("Proyectos AOD activos (\u00fanicos)", proy_unicos_terr)
+    COLS_SHOW = ["CODIGO INTERVENCION", "NOMBRE INTERVENCION", "OBJETIVO GENERAL",
+                 "FECHA INICIAL", "FECHA FINAL", "DEPARTAMENTO", "MUNICIPIO",
+                 "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
     cols_show = [c for c in COLS_SHOW if c in df_aod_terr.columns]
     st.dataframe(df_aod_terr[cols_show], use_container_width=True, hide_index=True)
 
@@ -1749,7 +1742,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
         colcol_s_unicos = colcol_sector["CODIGO"].nunique() if "CODIGO" in colcol_sector.columns else len(colcol_sector)
         st.metric("Intercambios \u00fanicos", colcol_s_unicos)
         COLS_CC_S = [
-            "CODIGO", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
+            "CODIGO", "ETAPA", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
             "BUENA PR\u00c1CTICA", "L\u00cdNEA TEM\u00c1TICA",
             "MUNICIPIO EN EL QUE SE DESARROLL\u00d3",
             "A\u00d1O DE REALIZACI\u00d3N ", "ENTIDAD SOCIA NACIONAL",
@@ -1772,14 +1765,13 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
     COLS_AOD_S = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
                   "DEPARTAMENTO", "MUNICIPIO", "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
     cols_aod_s = [c for c in COLS_AOD_S if c in aod_sector_proj.columns]
+    COLS_AOD_S = ["CODIGO INTERVENCION", "NOMBRE INTERVENCION", "OBJETIVO GENERAL",
+                  "FECHA INICIAL", "FECHA FINAL", "DEPARTAMENTO", "MUNICIPIO",
+                  "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
+    cols_aod_s = [c for c in COLS_AOD_S if c in aod_sector_proj.columns]
     if not aod_sector_proj.empty:
-        search_s = st.text_input("Buscar en proyectos del sector").strip()
-        if search_s:
-            mask_s = False
-            for c in ["NOMBRE INTERVENCION", "NOMBRE ACTOR", "MUNICIPIO", "ODS"]:
-                if c in aod_sector_proj.columns:
-                    mask_s = mask_s | aod_sector_proj[c].astype(str).str.contains(search_s, case=False, na=False)
-            aod_sector_proj = aod_sector_proj[mask_s]
+        proy_unicos_sect = aod_sector_proj["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_sector_proj.columns else len(aod_sector_proj)
+        st.metric("Proyectos AOD activos (\u00fanicos)", proy_unicos_sect)
         st.dataframe(aod_sector_proj[cols_aod_s], use_container_width=True, hide_index=True)
     else:
         st.info("Sin proyectos AOD para este sector.")
