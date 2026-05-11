@@ -24,7 +24,7 @@ st.set_page_config(
 
 FILE = "Ficha_territorial.xlsm"
 FILE_SECTORES = "Ficha sectores.xlsx"
-GEO_FILE = "Colombia.geo.json"
+GEO_FILE = "Colombia_geo.json"
 LOGO_APC = "logo_apc.png"
 LOGO_SNCIC = "logo_sncic.png"
 
@@ -553,14 +553,15 @@ def make_map(geo, dept_values, selected_dept=None):
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        coloraxis_colorbar=dict(
-            title="Intervenciones",
-            thickness=12,
-            len=0.6,
-            tickfont=dict(size=9),
-            titlefont=dict(size=9)
-        ),
         height=480,
+        coloraxis=dict(
+            colorbar=dict(
+                title=dict(text="Intervenciones", font=dict(size=9)),
+                thickness=12,
+                len=0.6,
+                tickfont=dict(size=9)
+            )
+        )
     )
 
     # Highlight selected dept
