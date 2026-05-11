@@ -689,10 +689,10 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept, css_dept=Non
         fontName="Helvetica-Bold", fontSize=15, textColor=BLANCO,
         spaceAfter=0, leading=20)
     estilo_seccion = ParagraphStyle("seccion",
-        fontName="Helvetica-Bold", fontSize=11, textColor=AZUL,
+        fontName="Helvetica-Bold", fontSize=9, textColor=AZUL,
         spaceBefore=14, spaceAfter=6)
     estilo_normal = ParagraphStyle("normal",
-        fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#1A1A2E"),
+        fontName="Helvetica", fontSize=7, textColor=colors.HexColor("#1A1A2E"),
         spaceAfter=3, leading=13)
     estilo_label = ParagraphStyle("label",
         fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#6B7280"),
@@ -1047,7 +1047,7 @@ def to_pdf_proyectos(dept, df_proj):
         textColor=colors.HexColor("#CBD5E1"), spaceAfter=0)
     estilo_dept = ParagraphStyle("dept", fontName="Helvetica-Bold", fontSize=15,
         textColor=BLANCO, spaceAfter=0, leading=20)
-    estilo_label = ParagraphStyle("label", fontName="Helvetica-Bold", fontSize=8,
+    estilo_label = ParagraphStyle("label", fontName="Helvetica-Bold", fontSize=7,
         textColor=colors.HexColor("#6B7280"), spaceAfter=1)
     estilo_normal = ParagraphStyle("normal", fontName="Helvetica", fontSize=8,
         textColor=colors.HexColor("#1A1A2E"), spaceAfter=3, leading=11)
@@ -1129,6 +1129,179 @@ def to_pdf_proyectos(dept, df_proj):
     doc.build(story)
     output.seek(0)
     return output.getvalue()
+
+def to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector):
+    output = BytesIO()
+    doc = SimpleDocTemplate(
+        output, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+    AZUL = colors.HexColor("#003087")
+    AZUL_CLARO = colors.HexColor("#E8F0FE")
+    GRIS = colors.HexColor("#F5F7FA")
+    GRIS_BORDE = colors.HexColor("#D0D9EA")
+    BLANCO = colors.white
+
+    estilo_titulo = ParagraphStyle("titulo", fontName="Helvetica-Bold", fontSize=18,
+        textColor=BLANCO, spaceAfter=4, leading=22)
+    estilo_subtitulo = ParagraphStyle("subtitulo", fontName="Helvetica", fontSize=8,
+        textColor=colors.HexColor("#CBD5E1"), spaceAfter=0)
+    estilo_dept = ParagraphStyle("dept", fontName="Helvetica-Bold", fontSize=13,
+        textColor=BLANCO, spaceAfter=0, leading=18)
+    estilo_seccion = ParagraphStyle("seccion", fontName="Helvetica-Bold", fontSize=9,
+        textColor=AZUL, spaceBefore=12, spaceAfter=5)
+    estilo_normal = ParagraphStyle("normal", fontName="Helvetica", fontSize=7,
+        textColor=colors.HexColor("#1A1A2E"), spaceAfter=2, leading=10)
+    estilo_label = ParagraphStyle("label", fontName="Helvetica-Bold", fontSize=7,
+        textColor=colors.HexColor("#6B7280"), spaceAfter=1)
+    estilo_caption = ParagraphStyle("caption", fontName="Helvetica", fontSize=6,
+        textColor=colors.HexColor("#6B7280"), spaceAfter=4, alignment=TA_CENTER)
+
+    story = []
+
+    # Header
+    hdr = Table([[
+        Paragraph("Ficha Sectorial", estilo_titulo),
+        Paragraph("APC-Colombia", ParagraphStyle("badge", fontName="Helvetica-Bold",
+            fontSize=8, textColor=BLANCO, alignment=TA_CENTER))
+    ]], colWidths=["80%", "20%"])
+    hdr.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("TOPPADDING", (0,0), (-1,-1), 12),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 12),
+        ("LEFTPADDING", (0,0), (0,-1), 14),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+    ]))
+    story.append(hdr)
+    story.append(Spacer(1, 8))
+
+    banner = Table([[Paragraph(f"\U0001f3db\ufe0f  {sector}", estilo_dept)]], colWidths=["100%"])
+    banner.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), AZUL),
+        ("TOPPADDING", (0,0), (-1,-1), 8),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+        ("LEFTPADDING", (0,0), (-1,-1), 12),
+    ]))
+    story.append(banner)
+    story.append(Spacer(1, 8))
+
+    # Info general
+    if not info_sector.empty:
+        story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+        story.append(Paragraph("Informaci\u00f3n General del Sector", estilo_seccion))
+        row = info_sector.iloc[0]
+        ig_data = [[Paragraph(str(k), estilo_label), Paragraph(str(v)[:100], estilo_normal)]
+                   for k, v in row.items() if str(v) not in ("nan", "None", "")]
+        if ig_data:
+            t_ig = Table(ig_data, colWidths=["35%", "65%"])
+            t_ig.setStyle(TableStyle([
+                ("ROWBACKGROUNDS", (0,0), (-1,-1), [BLANCO, GRIS]),
+                ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+                ("TOPPADDING", (0,0), (-1,-1), 4),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+                ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ]))
+            story.append(t_ig)
+
+    # AOD
+    if not aod_sector.empty:
+        story.append(Spacer(1, 8))
+        story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+        story.append(Paragraph("Ayuda Oficial al Desarrollo (AOD)", estilo_seccion))
+        story.append(Paragraph("Fuente: C\u00edclope a corte de 26 de marzo de 2026", estilo_caption))
+        aod_s2 = aod_sector.copy()
+        aod_s2["VALOR APORTE (USD)"] = pd.to_numeric(aod_s2.get("VALOR APORTE (USD)", 0), errors="coerce").fillna(0)
+        int_s = aod_s2["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_s2.columns else 0
+        coop_s = aod_s2["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in aod_s2.columns else 0
+        usd_s = aod_s2["VALOR APORTE (USD)"].sum()
+        metrics_s = [[
+            Paragraph("INTERVENCIONES", estilo_label),
+            Paragraph("COOPERANTES", estilo_label),
+            Paragraph("TOTAL APORTE (USD)", estilo_label)
+        ],[
+            Paragraph(str(int_s), ParagraphStyle("v", fontName="Helvetica-Bold", fontSize=12, textColor=AZUL)),
+            Paragraph(str(coop_s), ParagraphStyle("v", fontName="Helvetica-Bold", fontSize=12, textColor=AZUL)),
+            Paragraph("USD " + f"{usd_s:,.0f}".replace(",", "."),
+                      ParagraphStyle("v", fontName="Helvetica-Bold", fontSize=10, textColor=AZUL)),
+        ]]
+        t_m = Table(metrics_s, colWidths=["33%", "33%", "34%"])
+        t_m.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), GRIS),
+            ("LINEABOVE", (0,0), (-1,0), 3, AZUL),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 6),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+            ("LEFTPADDING", (0,0), (-1,-1), 8),
+        ]))
+        story.append(t_m)
+
+    # CSS
+    if not css_sector.empty:
+        story.append(Spacer(1, 8))
+        story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+        story.append(Paragraph(f"Proyectos de Cooperaci\u00f3n Sur Sur ({len(css_sector)} proyectos)", estilo_seccion))
+        COLS_CSS_PDF = ["C\u00f3digo", "VIA DE COOPERACION", "PAIS SOCIO", "REGION",
+                        "NOMBRE DE LA INICIATIVA", "ESTADO"]
+        cols_css = [c for c in COLS_CSS_PDF if c in css_sector.columns]
+        css_data = [[Paragraph(c, estilo_label) for c in cols_css]]
+        for _, r in css_sector[cols_css].head(20).iterrows():
+            css_data.append([Paragraph(str(v)[:60], estilo_normal) for v in r.values])
+        n = len(cols_css)
+        t_css = Table(css_data, colWidths=[f"{100/n}%" for _ in range(n)])
+        t_css.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ("LEFTPADDING", (0,0), (-1,-1), 5),
+            ("FONTSIZE", (0,0), (-1,-1), 6),
+        ]))
+        story.append(t_css)
+
+    # ColCol
+    if not colcol_sector.empty:
+        story.append(Spacer(1, 8))
+        story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
+        story.append(Paragraph(f"Colombia Ense\u00f1a Colombia - ColCol ({len(colcol_sector)} intercambios)", estilo_seccion))
+        COLS_CC_PDF = ["CODIGO", "NOMBRE DEL INTERCAMBIO", "A\u00d1O DE REALIZACI\u00d3N ",
+                       "PRESUPUESTO ESTIMADO APC COLOMBIA"]
+        cols_cc = [c for c in COLS_CC_PDF if c in colcol_sector.columns]
+        cc_data = [[Paragraph(c, estilo_label) for c in cols_cc]]
+        cc_show = colcol_sector[cols_cc].copy()
+        if "PRESUPUESTO ESTIMADO APC COLOMBIA" in cc_show.columns:
+            cc_show["PRESUPUESTO ESTIMADO APC COLOMBIA"] = (
+                pd.to_numeric(cc_show["PRESUPUESTO ESTIMADO APC COLOMBIA"], errors="coerce")
+                .apply(format_cop)
+            )
+        for _, r in cc_show.head(30).iterrows():
+            cc_data.append([Paragraph(str(v)[:80], estilo_normal) for v in r.values])
+        n = len(cols_cc)
+        t_cc = Table(cc_data, colWidths=[f"{100/n}%" for _ in range(n)])
+        t_cc.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), AZUL_CLARO),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [BLANCO, GRIS]),
+            ("GRID", (0,0), (-1,-1), 0.5, GRIS_BORDE),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ("LEFTPADDING", (0,0), (-1,-1), 5),
+            ("FONTSIZE", (0,0), (-1,-1), 6),
+        ]))
+        story.append(t_cc)
+
+    # Footer
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=GRIS_BORDE, spaceAfter=4))
+    story.append(Paragraph(
+        "Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia - APC-Colombia",
+        estilo_caption))
+
+    doc.build(story)
+    output.seek(0)
+    return output.getvalue()
+
+
 
 # -------------------------
 # APP
@@ -1634,7 +1807,13 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     with col_s2:
-        st.info("Descarga en PDF disponible pr\u00f3ximamente.")
+        pdf_sector = to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector)
+        st.download_button(
+            label="\U0001f4e5 Descargar en PDF",
+            data=pdf_sector,
+            file_name=f"Ficha_Sectorial_{sector}.pdf",
+            mime="application/pdf",
+        )
 
     st.markdown('<div class="apc-footer">Agencia Presidencial de Cooperaci\u00f3n Internacional de Colombia \u00b7 APC-Colombia</div>', unsafe_allow_html=True)
 
@@ -1870,16 +2049,16 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
         'cooperantes, ODS, sectores y departamentos con mayor financiaci\u00f3n. Incluye '
         'comparativos con el trimestre anterior.</p>'
         '<p><strong>Ficha Territorial</strong> permite explorar la cooperaci\u00f3n en cada uno '
-        'de los 33 departamentos del pa\u00eds. Para cada territorio encontrar\u00e1: informaci\u00f3n '
-        'general e institucional, indicadores de AOD con comparativos vs. 2025, programas '
-        'de la oferta de APC-Colombia (ColCol y Contrapartidas), proyectos de cooperaci\u00f3n '
-        'Sur-Sur vigentes, y el listado detallado de proyectos AOD activos. '
+        'de los 33 departamentos del pa\u00eds (incluida Bogot\u00e1, D.C.). Para cada territorio '
+        'encontrar\u00e1: informaci\u00f3n general e institucional, indicadores de AOD con comparativos '
+        'vs. el trimestre anterior, programas de la oferta de APC-Colombia (ColCol y Contrapartidas), '
+        'proyectos de cooperaci\u00f3n Sur-Sur vigentes, y el listado detallado de proyectos AOD activos. '
         'Toda la informaci\u00f3n puede descargarse en Excel o PDF.</p>'
         '<p><strong>Ficha Sectorial</strong> permite explorar la cooperaci\u00f3n por sector de gobierno '
         '(26 sectores). Para cada sector encontrar\u00e1: informaci\u00f3n general, indicadores y '
         'gr\u00e1ficas de AOD, proyectos de cooperaci\u00f3n Sur-Sur, intercambios ColCol y el listado '
-        'de proyectos AOD activos. La informaci\u00f3n puede descargarse en Excel.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver comparativos con el trimestre 4 de 2025. '
+        'de proyectos AOD activos. La informaci\u00f3n puede descargarse en Excel o PDF.</p>'
+        '<p>En algunos indicadores podr\u00e1 ver comparativos con el trimestre anterior. '
         'Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n respecto al per\u00edodo anterior. '
         'En la tarjeta de intervenciones: \u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
         '</div>'
@@ -1888,13 +2067,13 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
 
     g1, g2, g3, g4 = st.columns(4)
     with g1:
-        st.info("**\U0001f310 Panorama Nacional**\n\nVisi\u00f3n agregada de la cooperaci\u00f3n en Colombia con comparativos.")
+        st.info("**\U0001f310 Panorama Nacional**\n\nVisi\u00f3n de la cooperaci\u00f3n en Colombia con comparativos.")
     with g2:
         st.info("**\U0001f5fa\ufe0f Ficha Territorial**\n\nCooperaci\u00f3n por departamento. Descarga en Excel y PDF.")
     with g3:
-        st.info("**\U0001f3db\ufe0f Ficha Sectorial**\n\nCooperaci\u00f3n por sector de gobierno. Descarga en Excel.")
+        st.info("**\U0001f3db\ufe0f Ficha Sectorial**\n\nCooperaci\u00f3n por sector de gobierno. Descarga en Excel y PDF.")
     with g4:
-        st.info("**Fuentes**\n\nAOD: C\u00edclope (26/03/2026). CSS: APC-Colombia (04/2026). ColCol: APC-Colombia.")
+        st.info("**Fuentes**\n\nAOD: Sistema de Informaci\u00f3n C\u00edclope (26/03/2026). CSS: APC-Colombia, DOCI (04/2026). ColCol y Contrapartidas: APC-Colombia, DCI.")
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
