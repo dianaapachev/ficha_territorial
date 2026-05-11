@@ -1746,11 +1746,14 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
     if colcol_sector.empty:
         st.info("No se encontraron intercambios ColCol para este sector.")
     else:
-        st.metric("Intercambios encontrados", len(colcol_sector))
+        colcol_s_unicos = colcol_sector["CODIGO"].nunique() if "CODIGO" in colcol_sector.columns else len(colcol_sector)
+        st.metric("Intercambios \u00fanicos", colcol_s_unicos)
         COLS_CC_S = [
-            "NOMBRE DEL INTERCAMBIO", "A\u00d1O DE REALIZACI\u00d3N ",
-            "PAIS SOCIO" if "PAIS SOCIO" in colcol_sector.columns else "COOPERANTE 1",
-            "ODS PRINCIPAL", "PRESUPUESTO ESTIMADO APC COLOMBIA"
+            "CODIGO", "NOMBRE DEL INTERCAMBIO", "OBJETIVO DEL INTERCAMBIO",
+            "BUENA PR\u00c1CTICA", "L\u00cdNEA TEM\u00c1TICA",
+            "MUNICIPIO EN EL QUE SE DESARROLL\u00d3",
+            "A\u00d1O DE REALIZACI\u00d3N ", "ENTIDAD SOCIA NACIONAL",
+            "PRESUPUESTO ESTIMADO APC COLOMBIA"
         ]
         cols_cc_s = [c for c in COLS_CC_S if c in colcol_sector.columns]
         colcol_s_disp = colcol_sector[cols_cc_s].copy()
