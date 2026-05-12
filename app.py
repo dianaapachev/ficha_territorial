@@ -17,7 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 st.set_page_config(
-    page_title="Ficha de Cooperación Internacional | APC Colombia",
+    page_title="Ficha de Cooperaci\u00f3n Internacional | APC Colombia",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -428,7 +428,7 @@ body {
     color: #1C2B4A !important;
 }
 
-/* Fondo blanco en gráficas - Mac */
+/* Fondo blanco en gr\u00e1ficas - Mac */
 [data-testid="stArrowVegaLiteChart"] > div,
 [data-testid="stDataFrame"] > div,
 .js-plotly-plot,
@@ -600,8 +600,8 @@ def make_map(geo, dept_values, selected_dept=None):
     )
     fig.update_layout(
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
         height=480,
         coloraxis=dict(
             colorbar=dict(
@@ -1548,7 +1548,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
                     y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                ).properties(height=200)
+                ).properties(height=200).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_act, use_container_width=True)
             top_act_ant = top_by_sum(cic_dept_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
@@ -1574,7 +1574,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
                     y=alt.Y("ODS:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                ).properties(height=200)
+                ).properties(height=200).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_ods, use_container_width=True)
             top_ods_ant = top_by_sum(cic_dept_ant, "ODS", "VALOR APORTE (USD)", 5)
@@ -1738,7 +1738,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                         y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
                         x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                         tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                    ).properties(height=200)
+                    ).properties(height=200).configure(background="#FFFFFF")
                 )
                 st.altair_chart(chart_cs, use_container_width=True)
                 top_coop_s_disp = top_coop_s.copy()
@@ -1756,7 +1756,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                         y=alt.Y("ODS:N", sort="-x", title=""),
                         x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                         tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                    ).properties(height=200)
+                    ).properties(height=200).configure(background="#FFFFFF")
                 )
                 st.altair_chart(chart_os, use_container_width=True)
                 top_ods_s_disp = top_ods_s.copy()
@@ -1940,7 +1940,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_coop_usd, use_container_width=True)
             top_coop_usd_disp = top_coop_usd.copy()
@@ -1963,7 +1963,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
                     tooltip=["NOMBRE ACTOR:N", "INTERVENCIONES:Q"]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_coop_int, use_container_width=True)
             st.dataframe(top_coop_int, use_container_width=True, hide_index=True)
@@ -1986,7 +1986,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_ods_nac, use_container_width=True)
             top_ods_nac_disp = top_ods_nac.copy()
@@ -2009,7 +2009,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["SECTORES GOB:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_sect_nac, use_container_width=True)
             top_sect_nac_disp = top_sect_nac.copy()
@@ -2035,7 +2035,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["DEPARTAMENTO:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_dept_usd, use_container_width=True)
             top_dept_usd_disp = top_dept_usd.copy()
@@ -2059,7 +2059,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
                     tooltip=["DEPARTAMENTO:N", "INTERVENCIONES:Q"]
                 )
-                .properties(height=280)
+                .properties(height=280).configure(background="#FFFFFF")
             )
             st.altair_chart(chart_dept_int, use_container_width=True)
             st.dataframe(top_dept_int, use_container_width=True, hide_index=True)
