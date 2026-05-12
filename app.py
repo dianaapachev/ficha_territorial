@@ -408,20 +408,19 @@ body {
     background-color: #FFFFFF !important;
 }
 
-/* Forzar textos visibles en Mac modo oscuro */
-p, span, div, label, h1, h2, h3, h4 {
+/* Forzar modo claro - compatible Mac y PC */
+:root { color-scheme: light only; }
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    background-color: #FFFFFF !important;
+}
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stCaptionContainer"] p,
+[data-testid="stRadio"] label span,
+[data-testid="stMetricLabel"] p {
     color: #1C2B4A !important;
 }
-[data-testid="stMarkdownContainer"] p {
-    color: #1C2B4A !important;
-}
-[data-testid="stRadio"] label {
-    color: #1C2B4A !important;
-}
-button[data-baseweb="tab"] {
-    color: #5A6A85 !important;
-}
-
+            
 </style>
 """, unsafe_allow_html=True)
 
