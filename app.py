@@ -400,17 +400,6 @@ div[data-testid="stSelectbox"] > div > div {
     margin-bottom: 6px;
 }
 
-/* Fondo blanco forzado */
-.stApp {
-    background-color: #FFFFFF !important;
-}
-[data-testid="stAppViewContainer"] {
-    background-color: #FFFFFF !important;
-}
-[data-testid="stMain"] {
-    background-color: #FFFFFF !important;
-}
-
 /* Forzar modo claro en Mac */
 :root {
     color-scheme: light only;
@@ -419,6 +408,19 @@ body {
     background-color: #FFFFFF !important;
 }
 
+/* Forzar textos visibles en Mac modo oscuro */
+p, span, div, label, h1, h2, h3, h4 {
+    color: #1C2B4A !important;
+}
+[data-testid="stMarkdownContainer"] p {
+    color: #1C2B4A !important;
+}
+[data-testid="stRadio"] label {
+    color: #1C2B4A !important;
+}
+button[data-baseweb="tab"] {
+    color: #5A6A85 !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
