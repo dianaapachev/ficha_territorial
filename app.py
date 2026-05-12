@@ -416,11 +416,20 @@ div[data-testid="stSelectbox"] > div > div {
     background-color: #FFFFFF !important;
 }
 
-/* Texto botones descarga - PC */
-div[data-testid="stDownloadButton"] button {
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stCaptionContainer"] p,
+[data-testid="stRadio"] label span,
+[data-testid="stMetricLabel"] p {
+    color: #1C2B4A !important;
+}
+
+div[data-testid="stDownloadButton"] button,
+div[data-testid="stDownloadButton"] button p,
+div[data-testid="stDownloadButton"] button span {
     color: white !important;
 }
-            
+
 </style>
 """, unsafe_allow_html=True)
 
