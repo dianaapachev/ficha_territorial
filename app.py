@@ -417,7 +417,6 @@ div[data-testid="stSelectbox"] > div > div {
 }
 body {
     background-color: #FFFFFF !important;
-    color: #1C2B4A !important;
 }
 
 
