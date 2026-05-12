@@ -17,10 +17,15 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 st.set_page_config(
-    page_title="Ficha de Cooperaci\u00f3n Internacional | APC Colombia",
+    page_title="Ficha de Cooperación Internacional | APC Colombia",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+st.markdown("""
+    <style>
+    :root { color-scheme: light; }
+    </style>
+""", unsafe_allow_html=True)
 
 FILE = "Ficha_territorial.xlsm"
 FILE_SECTORES = "Ficha sectores.xlsx"
@@ -394,6 +399,27 @@ div[data-testid="stSelectbox"] > div > div {
     letter-spacing: 0.5px;
     margin-bottom: 6px;
 }
+
+/* Fondo blanco forzado */
+.stApp {
+    background-color: #FFFFFF !important;
+}
+[data-testid="stAppViewContainer"] {
+    background-color: #FFFFFF !important;
+}
+[data-testid="stMain"] {
+    background-color: #FFFFFF !important;
+}
+
+/* Forzar modo claro en Mac */
+:root {
+    color-scheme: light only;
+}
+body {
+    background-color: #FFFFFF !important;
+    color: #1C2B4A !important;
+}
+
 
 </style>
 """, unsafe_allow_html=True)
