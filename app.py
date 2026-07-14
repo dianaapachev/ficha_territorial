@@ -29,7 +29,7 @@ st.markdown("""
 
 FILE = "Ficha_territorial.xlsm"
 FILE_SECTORES = "Ficha sectores.xlsx"
-GEO_FILE = "Colombia.geo.json"
+GEO_FILE = "Colombia_geo.json"
 LOGO_APC = "logo_apc.png"
 LOGO_SNCIC = "logo_sncic.png"
 
@@ -507,8 +507,8 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "ciclope20261")
-    ciclope_ant = read_named_table(FILE, "ciclope2025")
+    ciclope = read_named_table(FILE, "Tabla7")  # AOD nuevo corte 2026-2
+    ciclope_ant = read_named_table(FILE, "ciclope20261")  # Comparativo corte anterior
     wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
     ws_css = wb_css["CSS"]
     css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
@@ -519,7 +519,7 @@ def load_data():
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "ciclope20261")
+    proyectos = read_named_table(FILE, "Tabla7")  # Listado proyectos tab2
 
     for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
@@ -542,7 +542,8 @@ def load_data():
 def load_sectores():
     """Carga los datos de la ficha sectorial."""
     info_s = pd.read_excel(FILE_SECTORES, sheet_name="INFO GENERAL")
-    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD22026")
+    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD202602")  # nuevo corte
+    aod_s_ant = pd.read_excel(FILE_SECTORES, sheet_name="AOD202601")  # corte anterior
     css_s = pd.read_excel(FILE_SECTORES, sheet_name="CSS22026")
     colcol_s = pd.read_excel(FILE_SECTORES, sheet_name="COLCOL")
 
@@ -555,8 +556,12 @@ def load_sectores():
         aod_s["VALOR APORTE (USD)"] = pd.to_numeric(
             aod_s["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
+    if "VALOR APORTE (USD)" in aod_s_ant.columns:
+        aod_s_ant["VALOR APORTE (USD)"] = pd.to_numeric(
+            aod_s_ant["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
 
-    return info_s, aod_s, css_s, colcol_s
+    return info_s, aod_s, aod_s_ant, css_s, colcol_s
 
 
 @st.cache_data
@@ -600,8 +605,8 @@ def make_map(geo, dept_values, selected_dept=None):
     )
     fig.update_layout(
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         height=480,
         coloraxis=dict(
             colorbar=dict(
@@ -1358,7 +1363,7 @@ def to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector)
 
 # Load data
 infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css = load_data()
-info_s, aod_s, css_s, colcol_s = load_sectores()
+info_s, aod_s, aod_s_ant, css_s, colcol_s = load_sectores()
 geo = load_geo()
 
 # \u2500\u2500 HEADER WITH LOGOS \u2500\u2500
@@ -1484,7 +1489,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
     int_activas = len(cod_26 & cod_25)
     int_terminadas = len(cod_25 - cod_26)
     delta_int = int_26 - int_25
-    delta_int_str = ("\u25b2 " if delta_int >= 0 else "\u25bc ") + str(abs(delta_int)) + " vs. 2025"
+    delta_int_str = ("\u25b2 " if delta_int >= 0 else "\u25bc ") + str(abs(delta_int)) + " vs. 2026-1"
     delta_int_color = "#2E7D32" if delta_int >= 0 else "#C8102E"
     with m1:
         st.markdown(
@@ -1509,7 +1514,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
         .nunique() if "MUNICIPIO" in cic_dept_ant.columns else 0
     )
     delta_mun = municipios_count - municipios_count_ant
-    delta_mun_str = ("\u25b2 " if delta_mun >= 0 else "\u25bc ") + str(abs(delta_mun)) + " vs. 2025"
+    delta_mun_str = ("\u25b2 " if delta_mun >= 0 else "\u25bc ") + str(abs(delta_mun)) + " vs. 2026-1"
     delta_mun_color = "#2E7D32" if delta_mun >= 0 else "#C8102E"
     with m3:
         st.markdown(
@@ -1523,7 +1528,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
     total_usd = cic_dept["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept.columns else 0
     total_usd_ant = cic_dept_ant["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in cic_dept_ant.columns else 0
     delta_usd = total_usd - total_usd_ant
-    delta_usd_str = ("\u25b2 " if delta_usd >= 0 else "\u25bc ") + format_usd(abs(delta_usd)) + " vs. 2025"
+    delta_usd_str = ("\u25b2 " if delta_usd >= 0 else "\u25bc ") + format_usd(abs(delta_usd)) + " vs. 2026-1"
     delta_usd_color = "#2E7D32" if delta_usd >= 0 else "#C8102E"
     with m4:
         st.markdown(
@@ -1548,7 +1553,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
                     y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                ).properties(height=200).configure(background="#FFFFFF")
+                ).properties(height=200)
             )
             st.altair_chart(chart_act, use_container_width=True)
             top_act_ant = top_by_sum(cic_dept_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
@@ -1574,7 +1579,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
                     y=alt.Y("ODS:N", sort="-x", title=""),
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                ).properties(height=200).configure(background="#FFFFFF")
+                ).properties(height=200)
             )
             st.altair_chart(chart_ods, use_container_width=True)
             top_ods_ant = top_by_sum(cic_dept_ant, "ODS", "VALOR APORTE (USD)", 5)
@@ -1643,7 +1648,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
 
     # ---- Proyectos AOD ----
     st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
     df_aod_terr = proj_dept.drop(columns=["DEPT_NORM"], errors="ignore").copy()
     proy_unicos_terr = df_aod_terr["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in df_aod_terr.columns else len(df_aod_terr)
     st.metric("Proyectos AOD activos (\u00fanicos)", proy_unicos_terr)
@@ -1708,7 +1713,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # AOD del sector
     st.markdown('<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
 
     aod_sector = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)]
 
@@ -1738,7 +1743,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                         y=alt.Y("NOMBRE ACTOR:N", sort="-x", title=""),
                         x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                         tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                    ).properties(height=200).configure(background="#FFFFFF")
+                    ).properties(height=200)
                 )
                 st.altair_chart(chart_cs, use_container_width=True)
                 top_coop_s_disp = top_coop_s.copy()
@@ -1756,7 +1761,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                         y=alt.Y("ODS:N", sort="-x", title=""),
                         x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                         tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
-                    ).properties(height=200).configure(background="#FFFFFF")
+                    ).properties(height=200)
                 )
                 st.altair_chart(chart_os, use_container_width=True)
                 top_ods_s_disp = top_ods_s.copy()
@@ -1808,7 +1813,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # ---- Proyectos AOD del sector ----
     st.markdown('<div class="section-header">Proyectos AOD del sector</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
     aod_sector_proj = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)].copy()
     aod_sector_proj = aod_sector_proj.drop(columns=["DEPT_NORM"] if "DEPT_NORM" in aod_sector_proj.columns else [], errors="ignore")
     COLS_AOD_S = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
@@ -1872,7 +1877,7 @@ elif nav == "\U0001f310 Panorama Nacional":
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026. Incluye \u00e1mbito nacional y territorial.")
+    st.caption("Fuente: C\u00edclope - segundo corte de 2026. Incluye \u00e1mbito nacional y territorial.")
 
     # Calcular datos nacionales
     cic_nacional = ciclope.copy()
@@ -1888,13 +1893,13 @@ elif nav == "\U0001f310 Panorama Nacional":
     int_nac_activas = len(cod_nac_26 & cod_nac_25)
     int_nac_terminadas = len(cod_nac_25 - cod_nac_26)
     delta_nac_int = int_nac_26 - int_nac_25
-    delta_nac_int_str = ("\u25b2 " if delta_nac_int >= 0 else "\u25bc ") + str(abs(delta_nac_int)) + " vs. 2025"
+    delta_nac_int_str = ("\u25b2 " if delta_nac_int >= 0 else "\u25bc ") + str(abs(delta_nac_int)) + " vs. 2026-1"
     delta_nac_int_color = "#2E7D32" if delta_nac_int >= 0 else "#C8102E"
     total_nac = cic_nacional["VALOR APORTE (USD)"].sum()
     total_nac_fmt = "USD " + f"{total_nac/1_000_000:,.0f} M".replace(",", ".")
     total_nac_ant = cic_ant_nac["VALOR APORTE (USD)"].sum()
     delta_nac_usd = total_nac - total_nac_ant
-    delta_nac_usd_str = ("\u25b2 " if delta_nac_usd >= 0 else "\u25bc ") + format_usd(abs(delta_nac_usd)) + " vs. 2025"
+    delta_nac_usd_str = ("\u25b2 " if delta_nac_usd >= 0 else "\u25bc ") + format_usd(abs(delta_nac_usd)) + " vs. 2026-1"
     delta_nac_usd_color = "#2E7D32" if delta_nac_usd >= 0 else "#C8102E"
     n1, n2, n3, n4 = st.columns(4)
     with n1:
@@ -1940,7 +1945,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["NOMBRE ACTOR:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_coop_usd, use_container_width=True)
             top_coop_usd_disp = top_coop_usd.copy()
@@ -1963,7 +1968,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
                     tooltip=["NOMBRE ACTOR:N", "INTERVENCIONES:Q"]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_coop_int, use_container_width=True)
             st.dataframe(top_coop_int, use_container_width=True, hide_index=True)
@@ -1986,7 +1991,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["ODS:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_ods_nac, use_container_width=True)
             top_ods_nac_disp = top_ods_nac.copy()
@@ -2009,7 +2014,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["SECTORES GOB:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_sect_nac, use_container_width=True)
             top_sect_nac_disp = top_sect_nac.copy()
@@ -2035,7 +2040,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("VALOR APORTE (USD):Q", title="USD"),
                     tooltip=["DEPARTAMENTO:N", alt.Tooltip("VALOR APORTE (USD):Q", format=",.0f")]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_dept_usd, use_container_width=True)
             top_dept_usd_disp = top_dept_usd.copy()
@@ -2059,7 +2064,7 @@ elif nav == "\U0001f310 Panorama Nacional":
                     x=alt.X("INTERVENCIONES:Q", title="N\u00famero de intervenciones"),
                     tooltip=["DEPARTAMENTO:N", "INTERVENCIONES:Q"]
                 )
-                .properties(height=280).configure(background="#FFFFFF")
+                .properties(height=280)
             )
             st.altair_chart(chart_dept_int, use_container_width=True)
             st.dataframe(top_dept_int, use_container_width=True, hide_index=True)
@@ -2091,18 +2096,18 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
         '<p><strong>Panorama Nacional</strong> presenta los totales nacionales de intervenciones, '
         'cooperantes y recursos de cooperaci\u00f3n internacional, e identifica los principales '
         'cooperantes, ODS, sectores y departamentos con mayor financiaci\u00f3n. Incluye '
-        'comparativos con el trimestre anterior.</p>'
+        'comparativos con el corte anterior (2026-1).</p>'
         '<p><strong>Ficha Territorial</strong> permite explorar la cooperaci\u00f3n en cada uno '
         'de los 33 departamentos del pa\u00eds (incluida Bogot\u00e1, D.C.). Para cada territorio '
         'encontrar\u00e1: informaci\u00f3n general e institucional, indicadores de AOD con comparativos '
-        'vs. el trimestre anterior, programas de la oferta de APC-Colombia (ColCol y Contrapartidas), '
+        'vs. el corte anterior (2026-1), programas de la oferta de APC-Colombia (ColCol y Contrapartidas), '
         'proyectos de cooperaci\u00f3n Sur-Sur vigentes, y el listado detallado de proyectos AOD activos. '
         'Toda la informaci\u00f3n puede descargarse en Excel o PDF.</p>'
         '<p><strong>Ficha Sectorial</strong> permite explorar la cooperaci\u00f3n por sector de gobierno '
         '(26 sectores). Para cada sector encontrar\u00e1: informaci\u00f3n general, indicadores y '
         'gr\u00e1ficas de AOD, proyectos de cooperaci\u00f3n Sur-Sur, intercambios ColCol y el listado '
         'de proyectos AOD activos. La informaci\u00f3n puede descargarse en Excel o PDF.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver comparativos con el trimestre anterior. '
+        '<p>En algunos indicadores podr\u00e1 ver comparativos con el corte anterior (2026-1). '
         'Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n respecto al per\u00edodo anterior. '
         'En la tarjeta de intervenciones: \u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
         '</div>'
