@@ -507,8 +507,8 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "Tabla7")  # AOD nuevo corte 2026-2
-    ciclope_ant = read_named_table(FILE, "ciclope20261")  # Comparativo corte anterior
+    ciclope = read_named_table(FILE, "ciclope20261")
+    ciclope_ant = read_named_table(FILE, "ciclope2025")
     wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
     ws_css = wb_css["CSS"]
     css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
@@ -519,7 +519,7 @@ def load_data():
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "Tabla7")  # Listado proyectos tab2
+    proyectos = read_named_table(FILE, "ciclope20261")
 
     for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
@@ -542,8 +542,7 @@ def load_data():
 def load_sectores():
     """Carga los datos de la ficha sectorial."""
     info_s = pd.read_excel(FILE_SECTORES, sheet_name="INFO GENERAL")
-    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD202602")  # nuevo corte
-    aod_s_ant = pd.read_excel(FILE_SECTORES, sheet_name="AOD202601")  # corte anterior
+    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD22026")
     css_s = pd.read_excel(FILE_SECTORES, sheet_name="CSS22026")
     colcol_s = pd.read_excel(FILE_SECTORES, sheet_name="COLCOL")
 
@@ -556,12 +555,8 @@ def load_sectores():
         aod_s["VALOR APORTE (USD)"] = pd.to_numeric(
             aod_s["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
-    if "VALOR APORTE (USD)" in aod_s_ant.columns:
-        aod_s_ant["VALOR APORTE (USD)"] = pd.to_numeric(
-            aod_s_ant["VALOR APORTE (USD)"], errors="coerce"
-        ).fillna(0)
 
-    return info_s, aod_s, aod_s_ant, css_s, colcol_s
+    return info_s, aod_s, css_s, colcol_s
 
 
 @st.cache_data
@@ -1363,7 +1358,7 @@ def to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector)
 
 # Load data
 infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css = load_data()
-info_s, aod_s, aod_s_ant, css_s, colcol_s = load_sectores()
+info_s, aod_s, css_s, colcol_s = load_sectores()
 geo = load_geo()
 
 # \u2500\u2500 HEADER WITH LOGOS \u2500\u2500
@@ -1448,6 +1443,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
         ]
     else:
         contr_dept = contrapartidas.iloc[0:0]
+    proj_dept_ant = ciclope_ant[ciclope_ant["DEPT_NORM"] == dept_norm]
 
 
     st.markdown(
@@ -1501,8 +1497,17 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
             '</div>',
             unsafe_allow_html=True
         )
-    m2.metric("Cooperantes",
-              cic_dept["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_dept.columns else 0)
+    coop_26 = cic_dept["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_dept.columns else 0
+    coop_ant = cic_dept_ant["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_dept_ant.columns else 0
+    delta_coop = coop_26 - coop_ant
+    delta_coop_str = ("\u25b2 " if delta_coop >= 0 else "\u25bc ") + str(abs(delta_coop)) + " vs. 2026-1"
+    delta_coop_color = "#2E7D32" if delta_coop >= 0 else "#C8102E"
+    with m2:
+        st.markdown(
+            '<div class="metric-custom"><div class="metric-custom-label">Cooperantes</div>'
+            f'<div class="metric-custom-value">{coop_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{delta_coop_color};">{delta_coop_str}</div></div>',
+            unsafe_allow_html=True)
     municipios_count = (
         cic_dept["MUNICIPIO"].map(norm_text)
         .pipe(lambda s: s[~s.isin(["NO REPORTA", "SIN INFORMACION", "NO APLICA", ""])])
@@ -1558,12 +1563,12 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
             st.altair_chart(chart_act, use_container_width=True)
             top_act_ant = top_by_sum(cic_dept_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
             top_act_disp = top_act.copy()
-            top_act_disp.columns = ["NOMBRE ACTOR", "USD 2026"]
-            top_act_disp["USD 2026"] = top_act_disp["USD 2026"].apply(format_usd)
+            top_act_disp.columns = ["NOMBRE ACTOR", "USD 2026-2"]
+            top_act_disp["USD 2026-2"] = top_act_disp["USD 2026-2"].apply(format_usd)
             if not top_act_ant.empty:
                 top_act_ant_disp = top_act_ant.copy()
-                top_act_ant_disp.columns = ["NOMBRE ACTOR", "USD 2025"]
-                top_act_ant_disp["USD 2025"] = top_act_ant_disp["USD 2025"].apply(format_usd)
+                top_act_ant_disp.columns = ["NOMBRE ACTOR", "USD 2026-1"]
+                top_act_ant_disp["USD 2026-1"] = top_act_ant_disp["USD 2026-1"].apply(format_usd)
                 top_act_disp = top_act_disp.merge(top_act_ant_disp, on="NOMBRE ACTOR", how="left").fillna("-")
             st.dataframe(top_act_disp, use_container_width=True, hide_index=True)
         else:
@@ -1584,14 +1589,14 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
             st.altair_chart(chart_ods, use_container_width=True)
             top_ods_ant = top_by_sum(cic_dept_ant, "ODS", "VALOR APORTE (USD)", 5)
             top_ods_disp = top_ods.copy()
-            top_ods_disp.columns = ["ODS", "USD 2026"]
+            top_ods_disp.columns = ["ODS", "USD 2026-2"]
             top_ods_disp["ODS"] = top_ods_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-            top_ods_disp["USD 2026"] = top_ods_disp["USD 2026"].apply(format_usd)
+            top_ods_disp["USD 2026-2"] = top_ods_disp["USD 2026-2"].apply(format_usd)
             if not top_ods_ant.empty:
                 top_ods_ant_disp = top_ods_ant.copy()
-                top_ods_ant_disp.columns = ["ODS", "USD 2025"]
+                top_ods_ant_disp.columns = ["ODS", "USD 2026-1"]
                 top_ods_ant_disp["ODS"] = top_ods_ant_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
-                top_ods_ant_disp["USD 2025"] = top_ods_ant_disp["USD 2025"].apply(format_usd)
+                top_ods_ant_disp["USD 2026-1"] = top_ods_ant_disp["USD 2026-1"].apply(format_usd)
                 top_ods_disp = top_ods_disp.merge(top_ods_ant_disp, on="ODS", how="left").fillna("-")
             st.dataframe(top_ods_disp, use_container_width=True, hide_index=True)
         else:
@@ -1648,10 +1653,19 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
 
     # ---- Proyectos AOD ----
     st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
     df_aod_terr = proj_dept.drop(columns=["DEPT_NORM"], errors="ignore").copy()
     proy_unicos_terr = df_aod_terr["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in df_aod_terr.columns else len(df_aod_terr)
-    st.metric("Proyectos AOD activos (\u00fanicos)", proy_unicos_terr)
+    proy_ant_t = proj_dept_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in proj_dept_ant.columns else 0
+    delta_pt = proy_unicos_terr - proy_ant_t
+    delta_pt_str = ("\u25b2 " if delta_pt >= 0 else "\u25bc ") + str(abs(delta_pt)) + " vs. 2026-1"
+    delta_pt_col = "#2E7D32" if delta_pt >= 0 else "#C8102E"
+    st.markdown(
+        '<div class="metric-custom" style="max-width:300px;">'
+        '<div class="metric-custom-label">Proyectos AOD activos (\u00fanicos)</div>'
+        f'<div class="metric-custom-value">{proy_unicos_terr}</div>'
+        f'<div class="metric-custom-delta" style="color:{delta_pt_col};">{delta_pt_str}</div></div>',
+        unsafe_allow_html=True)
     COLS_SHOW = ["CODIGO INTERVENCION", "NOMBRE INTERVENCION", "OBJETIVO GENERAL",
                  "FECHA INICIAL", "FECHA FINAL", "DEPARTAMENTO", "MUNICIPIO",
                  "NOMBRE ACTOR", "ENCI PRIMER NIVEL", "ODS", "SECTORES GOB"]
@@ -1713,7 +1727,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # AOD del sector
     st.markdown('<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
 
     aod_sector = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)]
 
@@ -1721,15 +1735,39 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
         st.info("No se encontraron intervenciones de AOD para este sector.")
     else:
         aod_sector["VALOR APORTE (USD)"] = pd.to_numeric(aod_sector["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+        aod_sector_ant = aod_s_ant[aod_s_ant["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)].copy()
+        if "VALOR APORTE (USD)" in aod_sector_ant.columns:
+            aod_sector_ant["VALOR APORTE (USD)"] = pd.to_numeric(aod_sector_ant["VALOR APORTE (USD)"], errors="coerce").fillna(0)
+        int_s2 = aod_sector["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_sector.columns else 0
+        int_s1 = aod_sector_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_sector_ant.columns else 0
+        d_int = int_s2 - int_s1
+        d_int_str = ("\u25b2 " if d_int >= 0 else "\u25bc ") + str(abs(d_int)) + " vs. 2026-1"
+        d_int_col = "#2E7D32" if d_int >= 0 else "#C8102E"
+        coop_s2 = aod_sector["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in aod_sector.columns else 0
+        coop_s1 = aod_sector_ant["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in aod_sector_ant.columns else 0
+        d_coop = coop_s2 - coop_s1
+        d_coop_str = ("\u25b2 " if d_coop >= 0 else "\u25bc ") + str(abs(d_coop)) + " vs. 2026-1"
+        d_coop_col = "#2E7D32" if d_coop >= 0 else "#C8102E"
+        total_s = aod_sector["VALOR APORTE (USD)"].sum()
+        total_s1 = aod_sector_ant["VALOR APORTE (USD)"].sum() if "VALOR APORTE (USD)" in aod_sector_ant.columns else 0
+        d_usd = total_s - total_s1
+        d_usd_str = ("\u25b2 " if d_usd >= 0 else "\u25bc ") + format_usd(abs(d_usd)) + " vs. 2026-1"
+        d_usd_col = "#2E7D32" if d_usd >= 0 else "#C8102E"
         sm1, sm2, sm3, sm4 = st.columns(4)
-        sm1.metric("Intervenciones (\u00fanicas)", aod_sector["CODIGO INTERVENCION"].nunique()
-                   if "CODIGO INTERVENCION" in aod_sector.columns else 0)
-        sm2.metric("Cooperantes", aod_sector["NOMBRE ACTOR"].nunique()
-                   if "NOMBRE ACTOR" in aod_sector.columns else 0)
+        with sm1:
+            st.markdown('<div class="metric-custom"><div class="metric-custom-label">Intervenciones (\u00fanicas)</div>'
+                f'<div class="metric-custom-value">{int_s2}</div>'
+                f'<div class="metric-custom-delta" style="color:{d_int_col};">{d_int_str}</div></div>', unsafe_allow_html=True)
+        with sm2:
+            st.markdown('<div class="metric-custom"><div class="metric-custom-label">Cooperantes</div>'
+                f'<div class="metric-custom-value">{coop_s2}</div>'
+                f'<div class="metric-custom-delta" style="color:{d_coop_col};">{d_coop_str}</div></div>', unsafe_allow_html=True)
         sm3.metric("Departamentos", aod_sector[aod_sector["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
                    if "DEPARTAMENTO" in aod_sector.columns else 0)
-        total_s = aod_sector["VALOR APORTE (USD)"].sum()
-        sm4.metric("Total aporte (USD)", format_usd(total_s))
+        with sm4:
+            st.markdown('<div class="metric-custom"><div class="metric-custom-label">Total aporte (USD)</div>'
+                f'<div class="metric-custom-value" style="font-size:1rem;">{format_usd(total_s)}</div>'
+                f'<div class="metric-custom-delta" style="color:{d_usd_col};">{d_usd_str}</div></div>', unsafe_allow_html=True)
 
         sc1, sc2 = st.columns(2)
         with sc1:
@@ -1746,8 +1784,15 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                     ).properties(height=200)
                 )
                 st.altair_chart(chart_cs, use_container_width=True)
+                top_coop_s_ant = top_by_sum(aod_sector_ant, "NOMBRE ACTOR", "VALOR APORTE (USD)", 5)
                 top_coop_s_disp = top_coop_s.copy()
-                top_coop_s_disp["VALOR APORTE (USD)"] = top_coop_s_disp["VALOR APORTE (USD)"].apply(format_usd)
+                top_coop_s_disp.columns = ["NOMBRE ACTOR", "USD 2026-2"]
+                top_coop_s_disp["USD 2026-2"] = top_coop_s_disp["USD 2026-2"].apply(format_usd)
+                if not top_coop_s_ant.empty:
+                    tc1 = top_coop_s_ant.copy()
+                    tc1.columns = ["NOMBRE ACTOR", "USD 2026-1"]
+                    tc1["USD 2026-1"] = tc1["USD 2026-1"].apply(format_usd)
+                    top_coop_s_disp = top_coop_s_disp.merge(tc1, on="NOMBRE ACTOR", how="left").fillna("-")
                 st.dataframe(top_coop_s_disp, use_container_width=True, hide_index=True)
 
         with sc2:
@@ -1764,9 +1809,17 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
                     ).properties(height=200)
                 )
                 st.altair_chart(chart_os, use_container_width=True)
+                top_ods_s_ant = top_by_sum(aod_sector_ant, "ODS", "VALOR APORTE (USD)", 5)
                 top_ods_s_disp = top_ods_s.copy()
-                top_ods_s_disp["VALOR APORTE (USD)"] = top_ods_s_disp["VALOR APORTE (USD)"].apply(format_usd)
+                top_ods_s_disp.columns = ["ODS", "USD 2026-2"]
                 top_ods_s_disp["ODS"] = top_ods_s_disp["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+                top_ods_s_disp["USD 2026-2"] = top_ods_s_disp["USD 2026-2"].apply(format_usd)
+                if not top_ods_s_ant.empty:
+                    to1 = top_ods_s_ant.copy()
+                    to1.columns = ["ODS", "USD 2026-1"]
+                    to1["ODS"] = to1["ODS"].map(lambda x: ODS_NOMBRES.get(x, x))
+                    to1["USD 2026-1"] = to1["USD 2026-1"].apply(format_usd)
+                    top_ods_s_disp = top_ods_s_disp.merge(to1, on="ODS", how="left").fillna("-")
                 st.dataframe(top_ods_s_disp, use_container_width=True, hide_index=True)
 
 
@@ -1813,7 +1866,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # ---- Proyectos AOD del sector ----
     st.markdown('<div class="section-header">Proyectos AOD del sector</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope - segundo corte de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
     aod_sector_proj = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)].copy()
     aod_sector_proj = aod_sector_proj.drop(columns=["DEPT_NORM"] if "DEPT_NORM" in aod_sector_proj.columns else [], errors="ignore")
     COLS_AOD_S = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
@@ -1825,7 +1878,17 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
     cols_aod_s = [c for c in COLS_AOD_S if c in aod_sector_proj.columns]
     if not aod_sector_proj.empty:
         proy_unicos_sect = aod_sector_proj["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_sector_proj.columns else len(aod_sector_proj)
-        st.metric("Proyectos AOD activos (\u00fanicos)", proy_unicos_sect)
+        aod_sp_ant = aod_s_ant[aod_s_ant["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)]
+        proy_sect_ant = aod_sp_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_sp_ant.columns else 0
+        d_ps = proy_unicos_sect - proy_sect_ant
+        d_ps_str = ("\u25b2 " if d_ps >= 0 else "\u25bc ") + str(abs(d_ps)) + " vs. 2026-1"
+        d_ps_col = "#2E7D32" if d_ps >= 0 else "#C8102E"
+        st.markdown(
+            '<div class="metric-custom" style="max-width:300px;">'
+            '<div class="metric-custom-label">Proyectos AOD activos (\u00fanicos)</div>'
+            f'<div class="metric-custom-value">{proy_unicos_sect}</div>'
+            f'<div class="metric-custom-delta" style="color:{d_ps_col};">{d_ps_str}</div></div>',
+            unsafe_allow_html=True)
         st.dataframe(aod_sector_proj[cols_aod_s], use_container_width=True, hide_index=True)
     else:
         st.info("Sin proyectos AOD para este sector.")
@@ -1877,7 +1940,7 @@ elif nav == "\U0001f310 Panorama Nacional":
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope - segundo corte de 2026. Incluye \u00e1mbito nacional y territorial.")
+    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026. Incluye \u00e1mbito nacional y territorial.")
 
     # Calcular datos nacionales
     cic_nacional = ciclope.copy()
@@ -2096,18 +2159,18 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
         '<p><strong>Panorama Nacional</strong> presenta los totales nacionales de intervenciones, '
         'cooperantes y recursos de cooperaci\u00f3n internacional, e identifica los principales '
         'cooperantes, ODS, sectores y departamentos con mayor financiaci\u00f3n. Incluye '
-        'comparativos con el corte anterior (2026-1).</p>'
+        'comparativos con el trimestre anterior.</p>'
         '<p><strong>Ficha Territorial</strong> permite explorar la cooperaci\u00f3n en cada uno '
         'de los 33 departamentos del pa\u00eds (incluida Bogot\u00e1, D.C.). Para cada territorio '
         'encontrar\u00e1: informaci\u00f3n general e institucional, indicadores de AOD con comparativos '
-        'vs. el corte anterior (2026-1), programas de la oferta de APC-Colombia (ColCol y Contrapartidas), '
+        'vs. el trimestre anterior, programas de la oferta de APC-Colombia (ColCol y Contrapartidas), '
         'proyectos de cooperaci\u00f3n Sur-Sur vigentes, y el listado detallado de proyectos AOD activos. '
         'Toda la informaci\u00f3n puede descargarse en Excel o PDF.</p>'
         '<p><strong>Ficha Sectorial</strong> permite explorar la cooperaci\u00f3n por sector de gobierno '
         '(26 sectores). Para cada sector encontrar\u00e1: informaci\u00f3n general, indicadores y '
         'gr\u00e1ficas de AOD, proyectos de cooperaci\u00f3n Sur-Sur, intercambios ColCol y el listado '
         'de proyectos AOD activos. La informaci\u00f3n puede descargarse en Excel o PDF.</p>'
-        '<p>En algunos indicadores podr\u00e1 ver comparativos con el corte anterior (2026-1). '
+        '<p>En algunos indicadores podr\u00e1 ver comparativos con el trimestre anterior. '
         'Las flechas \u25b2 (subi\u00f3) y \u25bc (baj\u00f3) indican la variaci\u00f3n respecto al per\u00edodo anterior. '
         'En la tarjeta de intervenciones: \u2665 nuevas &nbsp;|&nbsp; \u21ba contin\u00faan &nbsp;|&nbsp; \u2713 terminadas.</p>'
         '</div>'
@@ -2122,7 +2185,7 @@ elif nav == "\U0001f4d6 Gu\u00eda de usuario":
     with g3:
         st.info("**\U0001f3db\ufe0f Ficha Sectorial**\n\nCooperaci\u00f3n por sector de gobierno. Descarga en Excel y PDF.")
     with g4:
-        st.info("**Fuentes**\n\nAOD: Sistema de Informaci\u00f3n C\u00edclope (26/03/2026). CSS: APC-Colombia, DOCI (04/2026). ColCol y Contrapartidas: APC-Colombia, DCI.")
+        st.info("**Fuentes**\n\nAOD: Sistema de Informaci\u00f3n C\u00edclope (10/07/2026). CSS: APC-Colombia, DOCI (04/2026). ColCol y Contrapartidas: APC-Colombia, DCI.")
 
     st.markdown(
         '<div class="apc-footer">Agencia Presidencial de Cooperacion Internacional de Colombia - APC-Colombia</div>',
