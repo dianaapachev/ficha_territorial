@@ -508,7 +508,7 @@ def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
     ciclope = read_named_table(FILE, "ciclope20261")
-    ciclope_ant = read_named_table(FILE, "ciclope2025")
+    ciclope_ant = read_named_table(FILE, "ciclope20261")
     wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
     ws_css = wb_css["CSS"]
     css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
@@ -519,7 +519,7 @@ def load_data():
     colcol = read_named_table(FILE, "colcol")
     contrapartidas = read_named_table(FILE, "contrapartidas")
     contrapartidas.columns = [str(c).strip().strip("'") for c in contrapartidas.columns]
-    proyectos = read_named_table(FILE, "ciclope20261")
+    proyectos = read_named_table(FILE, "Tabla7")
 
     for df in [infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos]:
         for c in df.columns:
