@@ -507,8 +507,8 @@ def read_named_table(file_path: str, table_name: str) -> pd.DataFrame:
 def load_data():
     infogeneral = read_named_table(FILE, "infogeneral")
     plan = read_named_table(FILE, "plan")
-    ciclope = read_named_table(FILE, "ciclope20261")
-    ciclope_ant = read_named_table(FILE, "ciclope20261")
+    ciclope = read_named_table(FILE, "Tabla7")  # nuevo corte 2026-2
+    ciclope_ant = read_named_table(FILE, "ciclope20261")  # comparativo 2026-1
     wb_css = load_workbook(FILE, data_only=True, keep_vba=True)
     ws_css = wb_css["CSS"]
     css_data = [list(row) for row in ws_css.iter_rows(values_only=True)]
