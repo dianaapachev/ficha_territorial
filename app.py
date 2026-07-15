@@ -542,8 +542,8 @@ def load_data():
 def load_sectores():
     """Carga los datos de la ficha sectorial."""
     info_s = pd.read_excel(FILE_SECTORES, sheet_name="INFO GENERAL")
-    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD22026")
-    css_s = pd.read_excel(FILE_SECTORES, sheet_name="CSS22026")
+    aod_s = pd.read_excel(FILE_SECTORES, sheet_name="AOD202602")
+    aod_s_ant = pd.read_excel(FILE_SECTORES, sheet_name="AOD202601")    css_s = pd.read_excel(FILE_SECTORES, sheet_name="CSS22026")
     colcol_s = pd.read_excel(FILE_SECTORES, sheet_name="COLCOL")
 
     for df in [info_s, aod_s, css_s, colcol_s]:
