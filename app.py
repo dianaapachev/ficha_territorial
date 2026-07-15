@@ -867,7 +867,7 @@ def to_pdf_ficha(dept, info_row, cic_dept, colcol_dept, contr_dept, css_dept=Non
     story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
     story.append(Paragraph("Ayuda Oficial al Desarrollo (AOD)", estilo_seccion))
     story.append(Paragraph(
-        "Fuente: C\u00edclope a corte de 26 de marzo de 2026",
+        "Fuente: C\u00edclope a corte de 10 de julio de 2026",
         estilo_caption))
 
     cic = cic_dept.drop(columns=["DEPT_NORM"], errors="ignore")
@@ -1137,7 +1137,7 @@ def to_pdf_proyectos(dept, df_proj):
     story.append(dept_table)
     story.append(Spacer(1, 6))
     story.append(Paragraph(
-        f"Total proyectos: {len(df_proj)} | Fuente: C\u00edclope a corte de 26 de marzo de 2026",
+        f"Total proyectos: {len(df_proj)} | Fuente: C\u00edclope a corte de 10 de julio de 2026",
         estilo_caption))
 
     # Tabla de proyectos
@@ -1263,7 +1263,7 @@ def to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector)
         story.append(Spacer(1, 8))
         story.append(HRFlowable(width="100%", thickness=2, color=AZUL, spaceAfter=4))
         story.append(Paragraph("Ayuda Oficial al Desarrollo (AOD)", estilo_seccion))
-        story.append(Paragraph("Fuente: C\u00edclope a corte de 26 de marzo de 2026", estilo_caption))
+        story.append(Paragraph("Fuente: C\u00edclope a corte de 10 de julio de 2026", estilo_caption))
         aod_s2 = aod_sector.copy()
         aod_s2["VALOR APORTE (USD)"] = pd.to_numeric(aod_s2.get("VALOR APORTE (USD)", 0), errors="coerce").fillna(0)
         int_s = aod_s2["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in aod_s2.columns else 0
@@ -1658,7 +1658,7 @@ if nav == "\U0001f5fa\ufe0f Ficha Territorial":
 
     # ---- Proyectos AOD ----
     st.markdown('<div class="section-header">Proyectos AOD activos</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 10 de julio de 2026")
     df_aod_terr = proj_dept.drop(columns=["DEPT_NORM"], errors="ignore").copy()
     proy_unicos_terr = df_aod_terr["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in df_aod_terr.columns else len(df_aod_terr)
     proy_ant_t = proj_dept_ant["CODIGO INTERVENCION"].nunique() if "CODIGO INTERVENCION" in proj_dept_ant.columns else 0
@@ -1732,7 +1732,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # AOD del sector
     st.markdown('<div class="section-header">Ayuda Oficial al Desarrollo (AOD)</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 10 de julio de 2026")
 
     aod_sector = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)]
 
@@ -1871,7 +1871,7 @@ elif nav == "\U0001f3db\ufe0f Ficha Sectorial":
 
     # ---- Proyectos AOD del sector ----
     st.markdown('<div class="section-header">Proyectos AOD del sector</div>', unsafe_allow_html=True)
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026")
+    st.caption("Fuente: C\u00edclope a corte de 10 de julio de 2026")
     aod_sector_proj = aod_s[aod_s["SECTORES GOB"].map(norm_text).str.contains(sector_norm, na=False)].copy()
     aod_sector_proj = aod_sector_proj.drop(columns=["DEPT_NORM"] if "DEPT_NORM" in aod_sector_proj.columns else [], errors="ignore")
     COLS_AOD_S = ["NOMBRE INTERVENCION", "OBJETIVO GENERAL", "FECHA INICIAL", "FECHA FINAL",
@@ -1945,7 +1945,7 @@ elif nav == "\U0001f310 Panorama Nacional":
         '<div class="dept-title-banner">\U0001f310 Panorama Nacional de la Cooperaci\u00f3n Internacional</div>',
         unsafe_allow_html=True
     )
-    st.caption("Fuente: C\u00edclope a corte de 26 de marzo de 2026. Incluye \u00e1mbito nacional y territorial.")
+    st.caption("Fuente: C\u00edclope a corte de 10 de julio de 2026. Incluye \u00e1mbito nacional y territorial.")
 
     # Calcular datos nacionales
     cic_nacional = ciclope.copy()
