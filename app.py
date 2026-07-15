@@ -555,8 +555,12 @@ def load_sectores():
         aod_s["VALOR APORTE (USD)"] = pd.to_numeric(
             aod_s["VALOR APORTE (USD)"], errors="coerce"
         ).fillna(0)
+    if "VALOR APORTE (USD)" in aod_s_ant.columns:
+        aod_s_ant["VALOR APORTE (USD)"] = pd.to_numeric(
+            aod_s_ant["VALOR APORTE (USD)"], errors="coerce"
+        ).fillna(0)
 
-    return info_s, aod_s, css_s, colcol_s
+    return info_s, aod_s, aod_s_ant, css_s, colcol_s
 
 
 @st.cache_data
@@ -1358,7 +1362,7 @@ def to_pdf_sectorial(sector, info_sector, aod_sector, css_sector, colcol_sector)
 
 # Load data
 infogeneral, plan, ciclope, ciclope_ant, colcol, contrapartidas, proyectos, css = load_data()
-info_s, aod_s, css_s, colcol_s = load_sectores()
+info_s, aod_s, aod_s_ant, css_s, colcol_s = load_sectores()
 geo = load_geo()
 
 # \u2500\u2500 HEADER WITH LOGOS \u2500\u2500
@@ -1975,8 +1979,17 @@ elif nav == "\U0001f310 Panorama Nacional":
             '</div>',
             unsafe_allow_html=True
         )
-    n2.metric("Cooperantes", cic_nacional["NOMBRE ACTOR"].nunique()
-              if "NOMBRE ACTOR" in cic_nacional.columns else 0)
+    coop_nac_26 = cic_nacional["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_nacional.columns else 0
+    coop_nac_ant = cic_ant_nac["NOMBRE ACTOR"].nunique() if "NOMBRE ACTOR" in cic_ant_nac.columns else 0
+    d_coop_nac = coop_nac_26 - coop_nac_ant
+    d_coop_nac_str = ("\u25b2 " if d_coop_nac >= 0 else "\u25bc ") + str(abs(d_coop_nac)) + " vs. 2026-1"
+    d_coop_nac_col = "#2E7D32" if d_coop_nac >= 0 else "#C8102E"
+    with n2:
+        st.markdown(
+            '<div class="metric-custom"><div class="metric-custom-label">Cooperantes</div>'
+            f'<div class="metric-custom-value">{coop_nac_26}</div>'
+            f'<div class="metric-custom-delta" style="color:{d_coop_nac_col};">{d_coop_nac_str}</div></div>',
+            unsafe_allow_html=True)
     n3.metric("Departamentos con AOD",
               cic_nacional[cic_nacional["DEPARTAMENTO"] != "\u00c1mbito Nacional"]["DEPARTAMENTO"].nunique()
               if "DEPARTAMENTO" in cic_nacional.columns else 0)
